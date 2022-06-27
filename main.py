@@ -2,6 +2,13 @@ import numpy as np
 import cv2
 import math
 
+# To find our angle, I think that we can use a process like this:
+# 1. Find pixel position of center (cx)
+# 2. Find pixel position of nearest numbered tick (nx), as well as number it(N)
+# 3. Find width in pixels of distance between small ticks
+# 4. divide distance in pixels by small tick ratio and add to N
+# Ex for test2.jpg: 19.5 + ((378-191)/10)*0.01 = 19.68
+
 class SpectrometerAngleEstimator(object):    
     @staticmethod
     def from_frame(source):
@@ -14,6 +21,7 @@ class SpectrometerAngleEstimator(object):
             lsd = cv2.createLineSegmentDetector(0)
             lines = lsd.detect(img)[0]
 
+            #draw all vertical line segments
             segments = []
             true_mid = lines[0][0][0]
             for i in range(0, len(lines)):
@@ -23,14 +31,7 @@ class SpectrometerAngleEstimator(object):
                     if abs(x_mid - l[0][0]) < abs(x_mid - true_mid):
                         true_mid = l[0][0]
 
-            final = lsd.drawSegments(img, np.asarray(segments))
-    
-# To find our angle, I think that we can use a process like this:
-# 1. Find pixel position of center (cx)
-# 2. Find pixel position of nearest numbered tick (nx), as well as number it(N)
-# 3. Find width in pixels of distance between small ticks
-# 4. divide distance in pixels by small tick ratio and add to N
-# Ex for test2.jpg: 19.5 + ((378-191)/10)*0.01 = 19.68
+            final = lsd.drawSegments(img, np.asarray(segments))    
 
             cv2.imshow("Detector", final)
             key = cv2.waitKey(1)
