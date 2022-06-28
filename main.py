@@ -16,6 +16,8 @@ layer_names = [
         "feature_fusion/Conv_7/Sigmoid",
         "feature_fusion/concat_3"]
 
+PIXEL_RATIO = 10    #accurate estimation for now
+
 class SpectrometerAngleEstimator(object):    
     @staticmethod
     def from_frame(source):
@@ -37,6 +39,8 @@ class SpectrometerAngleEstimator(object):
                     segments.append(l)
                     if abs(x_mid - l[0][0]) < abs(x_mid - true_mid):
                         true_mid = l[0][0]
+
+            true_mid = 378 #temp
 
             final = lsd.drawSegments(img, np.asarray(segments)) 
 
@@ -104,10 +108,12 @@ class SpectrometerAngleEstimator(object):
             for l in segments:
                 if abs(cmpX - l[0][0]) < abs(cmpX - tick) and l[0][1] > 175 and l[0][1] < 240:
                     tick = l[0][0]
-
             cv2.rectangle((final), (int(tick), 0), (int(tick), frame.shape[0]), (255, 0, 0), 1)   
-            
-            
+           
+            pix_frac = true_mid - tick
+            dec_frac = (pix_frac/PIXEL_RATIO)*0.01
+           
+            print("Additional distance (deg): " + str(dec_frac))
             
             #display and poll
             cv2.imshow("Detector", final)
