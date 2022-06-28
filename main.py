@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 import math
+import sys
 from imutils.object_detection import non_max_suppression
 
 
@@ -81,8 +82,8 @@ class SpectrometerAngleEstimator(object):
                     endY = int(offsetY - (sin * xdata1[x]) + (cos * xdata2[x]))
                     startX = int(endX - w)
                     startY = int(endY - h)
-
-                    if startY < frame.shape[0]/2:
+                    
+                    if endY*rH < frame.shape[0]/2:
                         rects.append((startX, startY, endX, endY))
                         confidences.append(scores_data[x])
 
@@ -99,12 +100,15 @@ class SpectrometerAngleEstimator(object):
                 if abs(true_mid - tpos) < abs(true_mid - cmpX):
                     cmpX = tpos
                 
+            cv2.rectangle((final), (int(cmpX), 0), (int(cmpX), frame.shape[0]), (255, 0, 255), 1)   
             tick = 0
             for l in segments:
                 if abs(cmpX - l[0][0]) < abs(cmpX - tick) and l[0][0] > 175 and l[0][0] < 240:
                     tick = l[0][0]
 
-            cv2.rectangle((final), (int(tick), 0), (int(tick), frame.shape[0]), (255, 0, 0), 1)
+            cv2.rectangle((final), (int(tick), 0), (int(tick), frame.shape[0]), (255, 0, 0), 1)   
+            
+            
             
             #display and poll
             cv2.imshow("Detector", final)
@@ -116,4 +120,7 @@ class SpectrometerAngleEstimator(object):
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
-    model = SpectrometerAngleEstimator.from_frame("test2.jpg")
+    if len(sys.argv) > 1:
+        SpectrometerAngleEstimator.from_frame(sys.argv[1])
+    else:
+        SpectrometerAngleEstimator.from_frame("test2.jpg")
