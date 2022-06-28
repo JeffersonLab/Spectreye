@@ -3,7 +3,7 @@ import cv2
 import math
 import sys
 from imutils.object_detection import non_max_suppression
-
+import pytesseract
 
 # To find our angle, I think that we can use a process like this:
 # 1. Find pixel position of center (cx)
@@ -18,6 +18,10 @@ layer_names = [
 
 PIXEL_RATIO = 10    #accurate estimation for now
 NPAD = 15
+MKERNEL = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+FONT = cv2.FONT_HERSHEY_SIMPLEX
+
+#pytesseract.pytesseract.tesseract_cmd = r""
 
 class SpectrometerAngleEstimator(object):    
     @staticmethod
@@ -122,9 +126,22 @@ class SpectrometerAngleEstimator(object):
             numbox = img[boxdata[0]:boxdata[1], boxdata[2]:boxdata[3]]
             numbox = cv2.GaussianBlur(numbox,(5,5),0)
             (_, numbox) = cv2.threshold(numbox,127,255,cv2.THRESH_BINARY_INV)
+            numbox = cv2.morphologyEx(numbox, cv2.MORPH_OPEN, MKERNEL)
+            rawnum = pytesseract.image_to_string(numbox, lang="eng", config="--psm 6")
+            nstr = ""
+            print(rawnum)
+            for n in rawnum:
+                if n.isdigit():
+                    nstr += n
+            nstr = nstr[:2] + "." + nstr[2:]
+            angle = float(nstr) + dec_frac
+            print(angle) 
+
+            cv2.putText(final, str(angle), (10, 30), FONT, 1, (0, 255, 0), 2, 2)
+
             #display and poll
             cv2.imshow("Detector", final)
-            cv2.imshow("Numbers", numbox)
+#            cv2.imshow("Numbers", numbox)
             while True:
                 key = cv2.waitKey(1)
                 if key == ord('q'):
