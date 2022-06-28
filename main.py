@@ -134,7 +134,7 @@ class SpectrometerAngleEstimator(object):
                 if n.isdigit():
                     nstr += n
             nstr = nstr[:2] + "." + nstr[2:]
-            angle = float(nstr) + dec_frac
+            angle = round(float(nstr) + dec_frac, 2)
             print(angle) 
 
             cv2.putText(final, str(angle), (10, 30), FONT, 1, (0, 255, 0), 2, 2)
