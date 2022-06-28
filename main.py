@@ -100,10 +100,9 @@ class SpectrometerAngleEstimator(object):
                 if abs(true_mid - tpos) < abs(true_mid - cmpX):
                     cmpX = tpos
                 
-            cv2.rectangle((final), (int(cmpX), 0), (int(cmpX), frame.shape[0]), (255, 0, 255), 1)   
             tick = 0
             for l in segments:
-                if abs(cmpX - l[0][0]) < abs(cmpX - tick) and l[0][0] > 175 and l[0][0] < 240:
+                if abs(cmpX - l[0][0]) < abs(cmpX - tick) and l[0][1] > 175 and l[0][1] < 240:
                     tick = l[0][0]
 
             cv2.rectangle((final), (int(tick), 0), (int(tick), frame.shape[0]), (255, 0, 0), 1)   
