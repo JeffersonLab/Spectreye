@@ -17,6 +17,7 @@ layer_names = [
         "feature_fusion/concat_3"]
 
 PIXEL_RATIO = 10    #accurate estimation for now
+NPAD = 15
 
 class SpectrometerAngleEstimator(object):    
     @staticmethod
@@ -94,6 +95,7 @@ class SpectrometerAngleEstimator(object):
             boxes = non_max_suppression(np.array(rects), probs=confidences)
 
             cmpX = 0
+            boxdata = None
             for(startX, startY, endX, endY) in boxes:
                 startX = int(startX * rW)
                 startY = int(startY * rH)
@@ -103,6 +105,7 @@ class SpectrometerAngleEstimator(object):
                 tpos = startX + (endX-startX)/2
                 if abs(true_mid - tpos) < abs(true_mid - cmpX):
                     cmpX = tpos
+                    boxdata = [startY-NPAD, endY+NPAD, startX-NPAD, endX+NPAD]
                 
             tick = 0
             for l in segments:
@@ -114,9 +117,14 @@ class SpectrometerAngleEstimator(object):
             dec_frac = (pix_frac/PIXEL_RATIO)*0.01
            
             print("Additional distance (deg): " + str(dec_frac))
-            
+           
+            #isolate numbox
+            numbox = img[boxdata[0]:boxdata[1], boxdata[2]:boxdata[3]]
+            numbox = cv2.GaussianBlur(numbox,(5,5),0)
+            (_, numbox) = cv2.threshold(numbox,127,255,cv2.THRESH_BINARY_INV)
             #display and poll
             cv2.imshow("Detector", final)
+            cv2.imshow("Numbers", numbox)
             while True:
                 key = cv2.waitKey(1)
                 if key == ord('q'):
