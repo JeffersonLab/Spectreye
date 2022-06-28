@@ -21,7 +21,7 @@ class SpectrometerAngleEstimator(object):
         frame = cv2.imread(source) #TODO video support
         x_mid = frame.shape[1]/2
 
-        while True:
+        while True:         #for now having a loop is useless but will be necessary for video
             img = frame 
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             lsd = cv2.createLineSegmentDetector(0)
@@ -53,7 +53,7 @@ class SpectrometerAngleEstimator(object):
 
             net = cv2.dnn.readNet("east.pb")
             blob = cv2.dnn.blobFromImage(timg, 1.0, (W, H),
-                    (123.68, 116.78, 103.94), swapRB=True, crop=False)
+                    (123.68, 116.78, 103.94), swapRB=True, crop=False) #dont touch magic nums
             net.setInput(blob)
             (scores, geometry) = net.forward(layer_names)
             (nrows, ncols) = scores.shape[2:4]
@@ -88,18 +88,31 @@ class SpectrometerAngleEstimator(object):
 
             boxes = non_max_suppression(np.array(rects), probs=confidences)
 
+            cmpX = 0
             for(startX, startY, endX, endY) in boxes:
                 startX = int(startX * rW)
                 startY = int(startY * rH)
                 endX = int(endX * rW)
                 endY = int(endY * rH)
                 cv2.rectangle(final, (startX, startY), (endX, endY), (0, 255, 0), 2)
+                tpos = startX + (endX-startX)/2
+                if abs(true_mid - tpos) < abs(true_mid - cmpX):
+                    cmpX = tpos
+                
+            tick = 0
+            for l in segments:
+                if abs(cmpX - l[0][0]) < abs(cmpX - tick) and l[0][0] > 175 and l[0][0] < 240:
+                    tick = l[0][0]
 
+            cv2.rectangle((final), (int(tick), 0), (int(tick), frame.shape[0]), (255, 0, 0), 1)
+            
             #display and poll
             cv2.imshow("Detector", final)
-            key = cv2.waitKey(1)
-            if key == ord('q'):
-                break
+            while True:
+                key = cv2.waitKey(1)
+                if key == ord('q'):
+                    break
+            break
         cv2.destroyAllWindows()
 
 if __name__ == "__main__":
