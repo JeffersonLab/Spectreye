@@ -133,7 +133,11 @@ class SpectrometerAngleEstimator(object):
             for n in rawnum:
                 if n.isdigit():
                     nstr += n
-            nstr = nstr[:2] + "." + nstr[2:]
+            if len(nstr) < 3:
+                nstr = nstr + ".0"
+            else:
+                nstr = nstr[:2] + "." + nstr[2:]
+
             angle = round(float(nstr) + dec_frac, 2)
             print(angle) 
 
