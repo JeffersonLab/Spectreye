@@ -18,7 +18,7 @@ layer_names = [
 
 PIXEL_RATIO = 10    #accurate estimation for now
 NPAD = 40
-MKERNEL = cv2.getStructuringElement(cv2.MORPH_OPEN, (2,2))
+MKERNEL = cv2.getStructuringElement(cv2.MORPH_OPEN, (4,4))
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 net = cv2.dnn.readNet("east.pb")
@@ -50,9 +50,9 @@ class SpectrometerAngleEstimator(object):
             final = lsd.drawSegments(img, np.asarray(segments)) 
 
             #detect text
-            timg = img
-            bg = cv2.morphologyEx(timg, cv2.MORPH_DILATE, MKERNEL)
-            timg = cv2.divide(timg, bg, scale=255)
+       #     bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, MKERNEL)
+       #     pass1 = cv2.divide(pass1, bg, scale=255)
+            timg = frame
 
             if len(timg.shape) == 2:
                 timg = cv2.cvtColor(timg, cv2.COLOR_GRAY2RGB)
@@ -119,10 +119,10 @@ class SpectrometerAngleEstimator(object):
                     width = abs(endX-startX)
                     height = abs(endY-startY)
                     boxdata = [
-                            max(0, startY-height), 
-                            min(frame.shape[0], endY+height), 
-                            max(0, startX-width), 
-                            min(frame.shape[1], endX+width)
+                            max(0, startY-NPAD), 
+                            min(frame.shape[0], endY+NPAD), 
+                            max(0, startX-NPAD), 
+                            min(frame.shape[1], endX+NPAD)
                     ]
                 
             tick = 0
