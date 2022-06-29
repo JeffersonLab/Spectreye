@@ -17,8 +17,10 @@ layer_names = [
         "feature_fusion/concat_3"]
 
 PIXEL_RATIO = 10    #accurate estimation for now
-NPAD = 40
-MKERNEL = cv2.getStructuringElement(cv2.MORPH_OPEN, (4,4))
+NPAD = 100
+DKERNEL = cv2.getStructuringElement(cv2.MORPH_DILATE, (4,4))
+OKERNEL = cv2.getStructuringElement(cv2.MORPH_RECT, (1,1))
+CKERNEL = cv2.getStructuringElement(cv2.MORPH_RECT, (2,4))
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 net = cv2.dnn.readNet("east.pb")
@@ -51,9 +53,16 @@ class SpectrometerAngleEstimator(object):
 
             #detect text
             pass1 = img
-            bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, MKERNEL)
+            pass1 = cv2.threshold(pass1, 127, 255, cv2.THRESH_BINARY_INV, 0)[1]
+            bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, DKERNEL)
             pass1 = cv2.divide(pass1, bg, scale=255)
-            timg = img
+            pass1 = cv2.GaussianBlur(pass1, (3, 3), 0)
+            pass1 = cv2.morphologyEx(pass1, cv2.MORPH_OPEN, OKERNEL)
+            pass1 = cv2.GaussianBlur(pass1, (5, 5), 0)
+            #bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, DKERNEL)
+          #  pass1 = cv2.morphologyEx(pass1, cv2.MORPH_CLOSE, CKERNEL)
+            
+            timg = pass1
 
             if len(timg.shape) == 2:
                 timg = cv2.cvtColor(timg, cv2.COLOR_GRAY2RGB)
@@ -71,7 +80,6 @@ class SpectrometerAngleEstimator(object):
             (scores, geometry) = net.forward(layer_names)
             (nrows, ncols) = scores.shape[2:4]
             rects = []
-            confidences = []
             confidences = []
             for y in range(0, nrows):
                 scores_data = scores[0, 0, y]
@@ -121,7 +129,7 @@ class SpectrometerAngleEstimator(object):
                     width = abs(endX-startX)
                     height = abs(endY-startY)
                     boxdata = [
-                            max(0, startY-NPAD), 
+                            max(0, startY-50), 
                             min(frame.shape[0], endY+NPAD), 
                             max(0, startX-NPAD), 
                             min(frame.shape[1], endX+NPAD)
@@ -139,12 +147,12 @@ class SpectrometerAngleEstimator(object):
             print("Additional distance (deg): " + str(dec_frac))
            
             #isolate numbox
-            numbox = img[boxdata[0]:boxdata[1], boxdata[2]:boxdata[3]]
-            numbox = cv2.GaussianBlur(numbox,(5,5),0)
-            (_, numbox) = cv2.threshold(numbox,127,255,cv2.THRESH_BINARY_INV)
-            numbox = cv2.morphologyEx(numbox, cv2.MORPH_OPEN, MKERNEL)
+            numbox = pass1[boxdata[0]:boxdata[1], boxdata[2]:boxdata[3]]
+            #numbox = cv2.GaussianBlur(numbox,(5,5),0)
+            #(_, numbox) = cv2.threshold(numbox,127,255,cv2.THRESH_BINARY_INV)
+            #numbox = cv2.morphologyEx(numbox, cv2.MORPH_OPEN, DKERNEL)
 
-       #     bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, MKERNEL)
+       #     bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, DKERNEL)
        #     pass1 = cv2.divide(pass1, bg, scale=255)
             rawnum = pytesseract.image_to_string(numbox, lang="eng", config="--psm 6")
             nstr = ""
@@ -165,6 +173,7 @@ class SpectrometerAngleEstimator(object):
             #display and poll
             cv2.imshow("Detector", final)
             cv2.imshow("Numbers", numbox)
+            cv2.imshow("Box", timg)
             while True:
                 key = cv2.waitKey(1)
                 if key == ord('q'):
