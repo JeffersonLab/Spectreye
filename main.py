@@ -50,9 +50,10 @@ class SpectrometerAngleEstimator(object):
             final = lsd.drawSegments(img, np.asarray(segments)) 
 
             #detect text
-       #     bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, MKERNEL)
-       #     pass1 = cv2.divide(pass1, bg, scale=255)
-            timg = frame
+            pass1 = img
+            bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, MKERNEL)
+            pass1 = cv2.divide(pass1, bg, scale=255)
+            timg = img
 
             if len(timg.shape) == 2:
                 timg = cv2.cvtColor(timg, cv2.COLOR_GRAY2RGB)
@@ -70,6 +71,7 @@ class SpectrometerAngleEstimator(object):
             (scores, geometry) = net.forward(layer_names)
             (nrows, ncols) = scores.shape[2:4]
             rects = []
+            confidences = []
             confidences = []
             for y in range(0, nrows):
                 scores_data = scores[0, 0, y]
@@ -141,6 +143,9 @@ class SpectrometerAngleEstimator(object):
             numbox = cv2.GaussianBlur(numbox,(5,5),0)
             (_, numbox) = cv2.threshold(numbox,127,255,cv2.THRESH_BINARY_INV)
             numbox = cv2.morphologyEx(numbox, cv2.MORPH_OPEN, MKERNEL)
+
+       #     bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, MKERNEL)
+       #     pass1 = cv2.divide(pass1, bg, scale=255)
             rawnum = pytesseract.image_to_string(numbox, lang="eng", config="--psm 6")
             nstr = ""
             print(rawnum)
