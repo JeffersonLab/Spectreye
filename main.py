@@ -17,8 +17,8 @@ layer_names = [
         "feature_fusion/concat_3"]
 
 PIXEL_RATIO = 10    #accurate estimation for now
-NPAD = 15
-MKERNEL = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+NPAD = 40
+MKERNEL = cv2.getStructuringElement(cv2.MORPH_OPEN, (2,2))
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
 net = cv2.dnn.readNet("east.pb")
@@ -50,7 +50,10 @@ class SpectrometerAngleEstimator(object):
             final = lsd.drawSegments(img, np.asarray(segments)) 
 
             #detect text
-            timg = frame
+            timg = img
+            bg = cv2.morphologyEx(timg, cv2.MORPH_DILATE, MKERNEL)
+            timg = cv2.divide(timg, bg, scale=255)
+
             if len(timg.shape) == 2:
                 timg = cv2.cvtColor(timg, cv2.COLOR_GRAY2RGB)
             (H, W) = timg.shape[:2]
@@ -77,7 +80,7 @@ class SpectrometerAngleEstimator(object):
                 angles = geometry[0, 4, y]
 
                 for x in range(0, ncols):
-                    if scores_data[x] < 0.5:
+                    if scores_data[x] < 0.3:
                         continue
                     (offsetX, offsetY) = (x * 4.0, y * 4.0)
                     angle = angles[x]
@@ -113,7 +116,14 @@ class SpectrometerAngleEstimator(object):
                 tpos = startX + (endX-startX)/2
                 if abs(true_mid - tpos) < abs(true_mid - cmpX):
                     cmpX = tpos
-                    boxdata = [startY-NPAD, endY+NPAD, startX-NPAD, endX+NPAD]
+                    width = abs(endX-startX)
+                    height = abs(endY-startY)
+                    boxdata = [
+                            max(0, startY-height), 
+                            min(frame.shape[0], endY+height), 
+                            max(0, startX-width), 
+                            min(frame.shape[1], endX+width)
+                    ]
                 
             tick = 0
             for l in segments:
@@ -149,7 +159,7 @@ class SpectrometerAngleEstimator(object):
 
             #display and poll
             cv2.imshow("Detector", final)
-#            cv2.imshow("Numbers", numbox)
+            cv2.imshow("Numbers", numbox)
             while True:
                 key = cv2.waitKey(1)
                 if key == ord('q'):
