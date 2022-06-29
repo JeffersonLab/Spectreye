@@ -21,7 +21,7 @@ NPAD = 15
 MKERNEL = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 
-#pytesseract.pytesseract.tesseract_cmd = r""
+net = cv2.dnn.readNet("east.pb")
 
 class SpectrometerAngleEstimator(object):    
     @staticmethod
@@ -61,7 +61,6 @@ class SpectrometerAngleEstimator(object):
             timg = cv2.resize(timg, (newW, newH))
             (H, W) = timg.shape[:2]
 
-            net = cv2.dnn.readNet("east.pb")
             blob = cv2.dnn.blobFromImage(timg, 1.0, (W, H),
                     (123.68, 116.78, 103.94), swapRB=True, crop=False) #dont touch magic nums
             net.setInput(blob)
@@ -97,6 +96,11 @@ class SpectrometerAngleEstimator(object):
                         confidences.append(scores_data[x])
 
             boxes = non_max_suppression(np.array(rects), probs=confidences)
+
+            if len(boxes) == 0:
+                cv2.imshow("Failure", timg)
+                cv2.waitKey(0)
+                raise Exception("Could not locate any numbers!")
 
             cmpX = 0
             boxdata = None
@@ -155,6 +159,7 @@ class SpectrometerAngleEstimator(object):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
+        print(sys.argv[1])
         SpectrometerAngleEstimator.from_frame(sys.argv[1])
     else:
-        SpectrometerAngleEstimator.from_frame("test2.jpg")
+        SpectrometerAngleEstimator.from_frame("images/test2.jpg")
