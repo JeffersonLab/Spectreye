@@ -16,7 +16,6 @@ layer_names = [
         "feature_fusion/Conv_7/Sigmoid",
         "feature_fusion/concat_3"]
 
-PIXEL_RATIO = 10    #accurate estimation for now
 NPAD = 100
 DKERNEL = cv2.getStructuringElement(cv2.MORPH_DILATE, (4,4))
 OKERNEL = cv2.getStructuringElement(cv2.MORPH_RECT, (1,1))
@@ -30,27 +29,41 @@ class SpectrometerAngleEstimator(object):
     def from_frame(source):
         frame = cv2.imread(source) #TODO video support
         x_mid = frame.shape[1]/2
+        y_mid = frame.shape[0]/2
 
         while True:         #for now having a loop is useless but will be necessary for video
             img = frame 
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+            pass0 = img
+            pass0 = cv2.GaussianBlur(pass0, (5, 5), 0) 
+#            pass0 = cv2.fastNlMeansDenoising(pass0,None,21,7,21)
+
             lsd = cv2.createLineSegmentDetector(0)
-            lines = lsd.detect(img)[0]
+            lines = lsd.detect(pass0)[0]
 
             #draw all vertical line segments
             segments = []
-            true_mid = lines[0][0][0]
+
+            lmid = lines[0]
+            rmid = lines[1]
             for i in range(0, len(lines)):
                 l = lines[i]
                 if abs(l[0][0] - l[0][2]) < abs(l[0][1] - l[0][3]):
                     segments.append(l)
-                    if abs(x_mid - l[0][0]) < abs(x_mid - true_mid):
-                        true_mid = l[0][0]
+                    if l[0][1] > y_mid - (0.1 * frame.shape[0]) and l[0][3] < y_mid + (0.1 * frame.shape[0]):
+                        if l[0][0] < x_mid and abs(x_mid - l[0][0]) < abs(x_mid - lmid[0][0]):
+                            lmid = l
+                        if l[0][0] > x_mid and abs(x_mid - l[0][0]) < abs(x_mid - rmid[0][0]):
+                            rmid = l
 
-            true_mid = 378 #temp
+            true_mid = x_mid #temp
+            pixel_ratio = (2 * (rmid[0][0] - lmid[0][0]))
+            print("0.01 degrees = " + str(pixel_ratio) + " pixels")
+            
 
-            final = lsd.drawSegments(img, np.asarray(segments)) 
-
+#            final = lsd.drawSegments(img, np.asarray(segments)) 
+            final = lsd.drawSegments(img, np.asarray([lmid, rmid]))
             #detect text
             pass1 = img
             pass1 = cv2.threshold(pass1, 127, 255, cv2.THRESH_BINARY_INV, 0)[1]
@@ -143,7 +156,7 @@ class SpectrometerAngleEstimator(object):
             cv2.rectangle((final), (int(tick), 0), (int(tick), frame.shape[0]), (255, 0, 0), 1)   
            
             pix_frac = true_mid - tick
-            dec_frac = (pix_frac/PIXEL_RATIO)*0.01
+            dec_frac = (pix_frac/pixel_ratio)*0.01
            
             print("Additional distance (deg): " + str(dec_frac))
            
@@ -174,7 +187,7 @@ class SpectrometerAngleEstimator(object):
 
             #display and poll
             cv2.imshow("Detector", final)
-            cv2.imshow("Numbers", numbox)
+            cv2.imshow("Numbers", pass0)
             cv2.imshow("Box", timg)
             while True:
                 key = cv2.waitKey(1)
