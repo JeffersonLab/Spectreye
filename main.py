@@ -59,6 +59,7 @@ class SpectrometerAngleEstimator(object):
             pass1 = cv2.GaussianBlur(pass1, (3, 3), 0)
             pass1 = cv2.morphologyEx(pass1, cv2.MORPH_OPEN, OKERNEL)
             pass1 = cv2.GaussianBlur(pass1, (5, 5), 0)
+            pass1 = cv2.fastNlMeansDenoising(pass1,None,21,7,21)
             #bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, DKERNEL)
           #  pass1 = cv2.morphologyEx(pass1, cv2.MORPH_CLOSE, CKERNEL)
             
