@@ -36,8 +36,9 @@ class SpectrometerAngleEstimator(object):
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
             pass0 = img
-            pass0 = cv2.GaussianBlur(pass0, (5, 5), 0) 
-#            pass0 = cv2.fastNlMeansDenoising(pass0,None,21,7,21)
+            pass0 = cv2.GaussianBlur(pass0, (5, 5), 0)
+    #        pass0 = cv2.threshold(pass0, 150, 255, cv2.THRESH_BINARY_INV, 0)[1]
+    #        pass0 = cv2.fastNlMeansDenoising(pass0,None,21,7,21)
 
             lsd = cv2.createLineSegmentDetector(0)
             lines = lsd.detect(pass0)[0]

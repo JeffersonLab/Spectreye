@@ -1,4 +1,8 @@
-python3 main.py images/test2.jpg
-python3 main.py images/test3.jpg
-python3 main.py images/test4.jpg
-
+while true
+do
+	ls images/*.jpg |sort -R | tail -$1 |while read file; do
+		path=$file
+		echo $path
+		python3 main.py $path
+	done
+done
