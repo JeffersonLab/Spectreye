@@ -140,9 +140,8 @@ class SpectrometerAngleEstimator(object):
                         rmid = l
         return (lmid, rmid, segments)
 
-    def get_boxes_east(self, img):
+    def get_boxes_east(self, timg):
         timg = img.copy()
-        origH = timg.shape[0]/2
         if len(timg.shape) == 2:
             timg = cv2.cvtColor(timg, cv2.COLOR_GRAY2RGB)
         (H, W) = timg.shape[:2]
@@ -183,7 +182,7 @@ class SpectrometerAngleEstimator(object):
                 startX = int(endX - w)
                 startY = int(endY - h)
                 
-                if endY*rH < origH:
+                if endY*rH < H/2:
                     rects.append((startX, startY, endX, endY))
                     confidences.append(scores_data[x])
 
