@@ -26,6 +26,7 @@ class SpectrometerAngleEstimator(object):
         self.ckernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2,4))
 
         self.net = cv2.dnn.readNet("east.pb")
+        self.lsd = cv2.createLineSegmentDetector(0)
 
     def from_frame(self, frame):
         x_mid = frame.shape[1]/2
@@ -34,36 +35,13 @@ class SpectrometerAngleEstimator(object):
         img = frame 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        pass0 = img
-        pass0 = cv2.GaussianBlur(pass0, (5, 5), 0)
-#        pass0 = cv2.threshold(pass0, 150, 255, cv2.THRESH_BINARY_INV, 0)[1]
-#        pass0 = cv2.fastNlMeansDenoising(pass0,None,21,7,21)
-
-        lsd = cv2.createLineSegmentDetector(0)
-        lines = lsd.detect(pass0)[0]
-
-        #draw all vertical line segments
-        segments = []
-
-        lmid = lines[0]
-        rmid = lines[1]
-        for i in range(0, len(lines)):
-            l = lines[i]
-            if abs(l[0][0] - l[0][2]) < abs(l[0][1] - l[0][3]):
-                segments.append(l)
-                if l[0][1] > y_mid - (0.1 * frame.shape[0]) and l[0][3] < y_mid + (0.1 * frame.shape[0]):
-                    if l[0][0] < x_mid and abs(x_mid - l[0][0]) < abs(x_mid - lmid[0][0]):
-                        lmid = l
-                    if l[0][0] > x_mid and abs(x_mid - l[0][0]) < abs(x_mid - rmid[0][0]):
-                        rmid = l
+        (lmid, rmid, segments) = self.get_ticks(img)
 
         true_mid = x_mid #temp
         pixel_ratio = (2 * (rmid[0][0] - lmid[0][0]))
         print("0.01 degrees = " + str(pixel_ratio) + " pixels")
         
-
-#            final = lsd.drawSegments(img, np.asarray(segments)) 
-        final = lsd.drawSegments(img, np.asarray([lmid, rmid]))
+        final = self.lsd.drawSegments(img, np.asarray([lmid, rmid]))
         #detect text
         pass1 = img
         pass1 = cv2.threshold(pass1, 127, 255, cv2.THRESH_BINARY_INV, 0)[1]
@@ -73,8 +51,6 @@ class SpectrometerAngleEstimator(object):
         pass1 = cv2.morphologyEx(pass1, cv2.MORPH_OPEN, self.okernel)
         pass1 = cv2.GaussianBlur(pass1, (5, 5), 0)
         pass1 = cv2.fastNlMeansDenoising(pass1,None,21,7,21)
-        #bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, self.dkernel)
-      #  pass1 = cv2.morphologyEx(pass1, cv2.MORPH_CLOSE, self.ckernel)
         
         timg = pass1
 
@@ -163,12 +139,7 @@ class SpectrometerAngleEstimator(object):
         #isolate numbox
         numbox = pass1[boxdata[0]:boxdata[1], boxdata[2]:boxdata[3]]
         numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
-        #numbox = cv2.GaussianBlur(numbox,(5,5),0)
-        #(_, numbox) = cv2.threshold(numbox,127,255,cv2.THRESH_BINARY_INV)
-        #numbox = cv2.morphologyEx(numbox, cv2.MORPH_OPEN, self.dkernel)
 
-   #     bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, self.dkernel)
-   #     pass1 = cv2.divide(pass1, bg, scale=255)
         rawnum = pytesseract.image_to_string(numbox, lang="eng", config="--psm 6")
         nstr = ""
         print(rawnum)
@@ -194,6 +165,26 @@ class SpectrometerAngleEstimator(object):
             if key == ord('q'):
                 break
         cv2.destroyAllWindows()
+
+    def get_ticks(self, img):
+        x_mid = img.shape[1]/2
+        y_mid = img.shape[0]/2
+
+        lines = self.lsd.detect(cv2.GaussianBlur(img, (5, 5), 0))[0]
+        lmid = lines[0]
+        rmid = lines[1]
+
+        segments = []
+        for i in range(0, len(lines)):
+            l = lines[i]
+            if abs(l[0][0] - l[0][2]) < abs(l[0][1] - l[0][3]):
+                segments.append(l)
+                if l[0][1] > y_mid - (0.1 * img.shape[0]) and l[0][3] < y_mid + (0.1 * img.shape[0]):
+                    if l[0][0] < x_mid and abs(x_mid - l[0][0]) < abs(x_mid - lmid[0][0]):
+                        lmid = l
+                    if l[0][0] > x_mid and abs(x_mid - l[0][0]) < abs(x_mid - rmid[0][0]):
+                        rmid = l
+        return (lmid, rmid, segments)
 
 if __name__ == "__main__":
     sae = SpectrometerAngleEstimator()
