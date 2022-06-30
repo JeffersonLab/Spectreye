@@ -148,6 +148,7 @@ class SpectrometerAngleEstimator(object):
            
             #isolate numbox
             numbox = pass1[boxdata[0]:boxdata[1], boxdata[2]:boxdata[3]]
+            numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
             #numbox = cv2.GaussianBlur(numbox,(5,5),0)
             #(_, numbox) = cv2.threshold(numbox,127,255,cv2.THRESH_BINARY_INV)
             #numbox = cv2.morphologyEx(numbox, cv2.MORPH_OPEN, DKERNEL)
