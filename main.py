@@ -35,12 +35,18 @@ class SpectrometerAngleEstimator(object):
         img = frame 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        (lmid, rmid, segments) = self.get_ticks(img)
+        (ltick, rtick, segments) = self.get_ticks(img, True)
 
-        pixel_ratio = (2 * (rmid[0][0] - lmid[0][0]))
+        true_mid = self.find_mid(img, segments, ltick)[0][0] - (rtick[0][0] - ltick[0][0])
+        #true_mid = x_mid
+
+        pixel_ratio = (2 * (rtick[0][0] - ltick[0][0]))
         print("0.01 degrees = " + str(pixel_ratio) + " pixels")
         
-        final = self.lsd.drawSegments(img, np.asarray([lmid, rmid]))
+#        final = self.lsd.drawSegments(img, np.asarray(segments))
+        final = self.lsd.drawSegments(img, np.asarray([ltick, rtick]))
+        cv2.rectangle((final), (int(true_mid), 0), (int(true_mid), img.shape[0]), (255, 255, 0), 1)   
+
         #detect text
         pass1 = img
         pass1 = cv2.threshold(pass1, 127, 255, cv2.THRESH_BINARY_INV, 0)[1]
@@ -85,7 +91,7 @@ class SpectrometerAngleEstimator(object):
                 tick = l[0][0]
         cv2.rectangle((final), (int(tick), 0), (int(tick), frame.shape[0]), (255, 0, 0), 1)   
        
-        pix_frac = x_mid - tick
+        pix_frac = true_mid - tick
         dec_frac = (pix_frac/pixel_ratio)*0.01
        
         print("Additional distance (deg): " + str(dec_frac))
@@ -120,25 +126,57 @@ class SpectrometerAngleEstimator(object):
                 break
         cv2.destroyAllWindows()
 
-    def get_ticks(self, img):
+    def find_mid(self, img, segments, ltick):
+        #iter, if ltick or rtick can be contained find longest
+        mid = segments[0]
+        x_mid = img.shape[1]/2 
+
+        opts = []
+        for l in segments:
+            if ltick[0][1] >= l[0][1] and ltick[0][3] <= l[0][3]:
+                opts.append(l)
+                if l[0][3] - l[0][1] > mid[0][3] - mid[0][1]:
+                    mid = l
+        cull = []
+        for l in opts:
+            if not (l[0][1] < ltick[0][1]-(ltick[0][3]-ltick[0][1])):
+                cull.append(l)
+            elif not (l[0][3] > ltick[0][3]+(ltick[0][3]-ltick[0][1])):
+                cull.append(l)
+        
+        for l in cull:
+            if abs(x_mid - l[0][0]) < abs(x_mid - mid[0][0]):
+                mid = l
+
+        return mid
+
+    def get_ticks(self, img, debug=False):
         x_mid = img.shape[1]/2
         y_mid = img.shape[0]/2
 
-        lines = self.lsd.detect(cv2.GaussianBlur(img, (5, 5), 0))[0]
-        lmid = lines[0]
-        rmid = lines[1]
+        pass1 = img
+        pass1 = cv2.GaussianBlur(pass1, (5, 5), 0)
+
+        if debug:
+            cv2.imshow("Line Filter", pass1)
+            cv2.waitKey(0)
+
+        lines = self.lsd.detect(pass1)[0]
+        ltick = lines[0]
+        rtick = lines[1]
 
         segments = []
         for i in range(0, len(lines)):
             l = lines[i]
             if abs(l[0][0] - l[0][2]) < abs(l[0][1] - l[0][3]):
-                segments.append(l)
                 if l[0][1] > y_mid - (0.1 * img.shape[0]) and l[0][3] < y_mid + (0.1 * img.shape[0]):
-                    if l[0][0] < x_mid and abs(x_mid - l[0][0]) < abs(x_mid - lmid[0][0]):
-                        lmid = l
-                    if l[0][0] > x_mid and abs(x_mid - l[0][0]) < abs(x_mid - rmid[0][0]):
-                        rmid = l
-        return (lmid, rmid, segments)
+                    segments.append(l)
+                    if l[0][0] < x_mid and abs(x_mid - l[0][0]) < abs(x_mid - ltick[0][0]):
+                        ltick = l
+                    if l[0][0] > x_mid and abs(x_mid - l[0][0]) < abs(x_mid - rtick[0][0]):
+                        rtick = l
+
+        return (ltick, rtick, segments)
 
     def get_boxes_east(self, img):
         timg = img.copy()
@@ -169,7 +207,7 @@ class SpectrometerAngleEstimator(object):
             angles = geometry[0, 4, y]
 
             for x in range(0, ncols):
-                if scores_data[x] < 0.3:
+                if scores_data[x] < 0.5:
                     continue
                 (offsetX, offsetY) = (x * 4.0, y * 4.0)
                 angle = angles[x]
