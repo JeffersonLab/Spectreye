@@ -35,17 +35,18 @@ class SpectrometerAngleEstimator(object):
         img = frame 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-        (ltick, rtick, segments) = self.get_ticks(img, True)
+        (ltick, rtick, segments) = self.get_ticks(img, False)
 
-        true_mid = self.find_mid(img, segments, ltick)[0][0] - (rtick[0][0] - ltick[0][0])
+        true_mid = self.find_mid(img, segments, ltick, rtick)
         #true_mid = x_mid
 
-        pixel_ratio = (2 * (rtick[0][0] - ltick[0][0]))
+        pixel_ratio = (2 * (rtick[0][0] - ltick[0][0])) * 1.25
         print("0.01 degrees = " + str(pixel_ratio) + " pixels")
         
 #        final = self.lsd.drawSegments(img, np.asarray(segments))
         final = self.lsd.drawSegments(img, np.asarray([ltick, rtick]))
         cv2.rectangle((final), (int(true_mid), 0), (int(true_mid), img.shape[0]), (255, 255, 0), 1)   
+#        cv2.rectangle((final), (int(x_mid), 0), (int(x_mid), img.shape[0]), (255, 0, 255), 1)   
 
         #detect text
         pass1 = img
@@ -58,9 +59,11 @@ class SpectrometerAngleEstimator(object):
         pass1 = cv2.fastNlMeansDenoising(pass1,None,21,7,21)
         
         timg = pass1
-        (boxes, rW, rH) = self.get_boxes_east(timg)
+        (boxes, rW, rH) = self.ocr_east(timg)
 
         if len(boxes) == 0:
+            rawnum = pytesseract.image_to_string(timg, lang="eng", config="--psm 6")
+            print(rawnum)
             cv2.imshow("Failure", timg)
             cv2.waitKey(0)
             raise Exception("Could not locate any numbers!")
@@ -85,10 +88,13 @@ class SpectrometerAngleEstimator(object):
                         min(frame.shape[1], endX+self.npad)
                 ]
             
-        tick = 0
+        tseg = segments[0]
         for l in segments:
-            if abs(cmpX - l[0][0]) < abs(cmpX - tick) and l[0][1] > 175 and l[0][1] < 240:
-                tick = l[0][0]
+            if abs(cmpX - l[0][0]) < abs(cmpX - tseg[0][0]) and l[0][1] > 175 and l[0][1] < 240:
+                tseg = l
+        tmidy = int(tseg[0][1] + (tseg[0][3]-tseg[0][1])/2)
+        #tick = self.find_tick_center(pass1, tmidy, int(tseg[0][0])) 
+        tick = tseg[0][0]
         cv2.rectangle((final), (int(tick), 0), (int(tick), frame.shape[0]), (255, 0, 0), 1)   
        
         pix_frac = true_mid - tick
@@ -126,7 +132,16 @@ class SpectrometerAngleEstimator(object):
                 break
         cv2.destroyAllWindows()
 
-    def find_mid(self, img, segments, ltick):
+    def find_mid(self, img, segments, ltick, rtick):
+        #new approach, find all contours, look for "0" with ocr and assign center
+
+        #to find center of tick, go +x and -x until maximum color value is reached
+        #choose shortest distance as true x 
+        pass1 = img
+
+        pass1 = cv2.fastNlMeansDenoising(pass1,None,21,7,21)
+        pass1 = cv2.GaussianBlur(pass1, (5, 5), 0)
+
         #iter, if ltick or rtick can be contained find longest
         mid = segments[0]
         x_mid = img.shape[1]/2 
@@ -147,14 +162,40 @@ class SpectrometerAngleEstimator(object):
         for l in cull:
             if abs(x_mid - l[0][0]) < abs(x_mid - mid[0][0]):
                 mid = l
+       
+        img = pass1
+        ytest = int(mid[0][1] + (mid[0][3]-mid[0][1])/2)
+        xtest = int(mid[0][0] - (rtick[0][0] - ltick[0][0]))
 
-        return mid
+        return self.find_tick_center(img, ytest, xtest)
+
+    def find_tick_center(self, img, ytest, xtest):
+        optl, optr = 0, 0
+        for x in reversed(range(1, xtest)):
+            if img[ytest][x] > img[ytest][x-1]:
+                optl = x
+                break
+        for x in range(xtest, img.shape[1]-1):
+            if img[ytest][x] > img[ytest][x+1]:
+                optr = x
+                break
+        midx = optl if (abs(xtest-optl) > abs(xtest-optr)) else optr
+        print("optl: " + str(optl) + " optr: " + str(optr))
+        print("midx: " + str(midx) + " oldx: " + str(xtest)) 
+
+        cv2.rectangle((img), (optl, 0), (optl, img.shape[0]), (255, 255, 0), 1)    
+        cv2.rectangle((img), (optr, 0), (optr, img.shape[0]), (255, 255, 0), 1)    
+#        cv2.imshow("g", img)
+#        cv2.waitKey(0)
+
+        return midx
 
     def get_ticks(self, img, debug=False):
         x_mid = img.shape[1]/2
         y_mid = img.shape[0]/2
 
         pass1 = img
+        pass1 = cv2.fastNlMeansDenoising(pass1,None,21,7,21)
         pass1 = cv2.GaussianBlur(pass1, (5, 5), 0)
 
         if debug:
@@ -178,7 +219,7 @@ class SpectrometerAngleEstimator(object):
 
         return (ltick, rtick, segments)
 
-    def get_boxes_east(self, img):
+    def ocr_east(self, img):
         timg = img.copy()
         origH = timg.shape[0]/2
         if len(timg.shape) == 2:
