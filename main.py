@@ -39,7 +39,7 @@ class SpectrometerAngleEstimator(object):
         (ltick, rtick, segments) = self.get_ticks(img, False)
 
         (true_mid, pixel_ratio) = self.find_mid(img, segments, ltick, rtick)
-        #true_mid = x_mid
+    
 
         #pixel_ratio = (2 * (rtick[0][0] - ltick[0][0])) * 1.25
         print("0.01 degrees = " + str(pixel_ratio) + " pixels")
@@ -97,7 +97,7 @@ class SpectrometerAngleEstimator(object):
         #tick = self.find_tick_center(pass1, tmidy, int(tseg[0][0])) 
         tick = tseg[0][0]
         cv2.rectangle((final), (int(tick), 0), (int(tick), frame.shape[0]), (255, 0, 0), 1)   
-        #self.get_tick_width(pass1, tmidy) 
+        #self.proc_peak(pass1, tmidy) 
 
         pix_frac = true_mid - tick
         dec_frac = (pix_frac/pixel_ratio)*0.01
@@ -169,13 +169,14 @@ class SpectrometerAngleEstimator(object):
             if abs(x_mid - l[0][0]) < abs(x_mid - mid[0][0]):
                 mid = l
       
-        width = self.get_tick_width(pass1, int(mid[0][1] + (mid[0][3]-mid[0][1])/2))
-
+        width, peak_mid = self.proc_peak(pass1, int(mid[0][1] + (mid[0][3]-mid[0][1])/2))
+ 
         img = pass1
         ytest = int(mid[0][1] + (mid[0][3]-mid[0][1])/2)
         xtest = int(mid[0][0] - (rtick[0][0] - ltick[0][0]))
 
-        return (self.find_tick_center(img, ytest, xtest), width)
+#        return (self.find_tick_center(img, ytest, xtest), width)
+        return (peak_mid, width)
 
     def find_tick_center(self, img, ytest, xtest):
         optl, optr = 0, 0
@@ -196,7 +197,9 @@ class SpectrometerAngleEstimator(object):
 
         return midx
 
-    def get_tick_width(self, img, y):
+    def proc_peak(self, img, y):
+        x_mid = int(img.shape[1]/2)
+
         ticks = []
         for x in range(0, img.shape[1]-1):
             if img[y][x] > img[y][x+1]+1 and img[y][x] > img[y][x-1]+1:
@@ -204,13 +207,48 @@ class SpectrometerAngleEstimator(object):
 
         diffs = np.diff(np.asarray(ticks))
         width = np.bincount(diffs).argmax()
+
         print(width)
 
+        heights = []
         for l in ticks:
+            uy = y
+            while img[uy][l] < img[uy-1][l]+5:
+                uy -= 1
+            dy = y
+            while img[dy][l] < img[dy+1][l]+5:
+                dy += 1
+            heights.append(dy-uy)
+
+        heights = np.asarray(heights)
+        opti = list(np.argpartition(heights, -5)[-5:] )
+        ticks = np.asarray(ticks)
+        locs = np.asarray(ticks[opti])
+        heights = np.asarray(heights[opti])
+        
+        dists = []
+        for l in locs:
+            dists.append(abs(x_mid - l))
+        dists = sorted(dists, reverse=True)
+
+        fin = []
+        for i in range(0, len(heights)):
+            fin.append([locs[i], heights[i], dists[i]])
+
+        res = sorted(fin, key=lambda x: abs(x_mid - x[0]))[0:2]
+        cull = sorted(res, key=lambda x: x[0])
+        print(cull)
+        print()
+        pred_mid = cull[0][0]
+        print("preak pred mid: " + str(pred_mid))
+
+        for l in list(locs):
             cv2.rectangle(img, (l, 0), (l, img.shape[0]), (255, 255, 0), 1) 
+        cv2.rectangle(img, (pred_mid, 0), (pred_mid, img.shape[0]), (255, 0, 0), 1)
         cv2.imshow("test", img)
 
-        return width
+
+        return (width, pred_mid)
 
     def get_ticks(self, img, debug=False):
         x_mid = img.shape[1]/2
