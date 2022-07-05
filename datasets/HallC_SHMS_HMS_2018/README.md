@@ -10,5 +10,13 @@ myData -b "2018-01-15" -e "2018-02-28" -m history ecHMS_Angle ecSHMS_Angle > Hal
 
 The angles are in degrees.
 
+<hr>
+
+Here is a plot from _MyaViewer_ of the values vs. time. The viewer was started (on gluon47) with:
+
+~~~
+MyaViewer -mhistory
+~~~
+
 ![MYA plot of angles](MYAview.png?raw=true "MYAview plot of HMS and SHMS angles for early 2018")
 
