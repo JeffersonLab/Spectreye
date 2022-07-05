@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import math
 import sys
+from scipy import stats
 from imutils.object_detection import non_max_suppression
 import pytesseract
 
@@ -37,10 +38,10 @@ class SpectrometerAngleEstimator(object):
 
         (ltick, rtick, segments) = self.get_ticks(img, False)
 
-        true_mid = self.find_mid(img, segments, ltick, rtick)
+        (true_mid, pixel_ratio) = self.find_mid(img, segments, ltick, rtick)
         #true_mid = x_mid
 
-        pixel_ratio = (2 * (rtick[0][0] - ltick[0][0])) * 1.25
+        #pixel_ratio = (2 * (rtick[0][0] - ltick[0][0])) * 1.25
         print("0.01 degrees = " + str(pixel_ratio) + " pixels")
         
 #        final = self.lsd.drawSegments(img, np.asarray(segments))
@@ -96,7 +97,8 @@ class SpectrometerAngleEstimator(object):
         #tick = self.find_tick_center(pass1, tmidy, int(tseg[0][0])) 
         tick = tseg[0][0]
         cv2.rectangle((final), (int(tick), 0), (int(tick), frame.shape[0]), (255, 0, 0), 1)   
-       
+        #self.get_tick_width(pass1, tmidy) 
+
         pix_frac = true_mid - tick
         dec_frac = (pix_frac/pixel_ratio)*0.01
        
@@ -139,8 +141,10 @@ class SpectrometerAngleEstimator(object):
         #choose shortest distance as true x 
         pass1 = img
 
-        pass1 = cv2.fastNlMeansDenoising(pass1,None,21,7,21)
         pass1 = cv2.GaussianBlur(pass1, (5, 5), 0)
+        pass1 = cv2.fastNlMeansDenoising(pass1,None,21,7,21)
+#        cv2.imshow("t", pass1)
+#        cv2.waitKey(0)
 
         #iter, if ltick or rtick can be contained find longest
         mid = segments[0]
@@ -152,6 +156,8 @@ class SpectrometerAngleEstimator(object):
                 opts.append(l)
                 if l[0][3] - l[0][1] > mid[0][3] - mid[0][1]:
                     mid = l
+
+
         cull = []
         for l in opts:
             if not (l[0][1] < ltick[0][1]-(ltick[0][3]-ltick[0][1])):
@@ -162,12 +168,14 @@ class SpectrometerAngleEstimator(object):
         for l in cull:
             if abs(x_mid - l[0][0]) < abs(x_mid - mid[0][0]):
                 mid = l
-       
+      
+        width = self.get_tick_width(pass1, int(mid[0][1] + (mid[0][3]-mid[0][1])/2))
+
         img = pass1
         ytest = int(mid[0][1] + (mid[0][3]-mid[0][1])/2)
         xtest = int(mid[0][0] - (rtick[0][0] - ltick[0][0]))
 
-        return self.find_tick_center(img, ytest, xtest)
+        return (self.find_tick_center(img, ytest, xtest), width)
 
     def find_tick_center(self, img, ytest, xtest):
         optl, optr = 0, 0
@@ -180,15 +188,29 @@ class SpectrometerAngleEstimator(object):
                 optr = x
                 break
         midx = optl if (abs(xtest-optl) > abs(xtest-optr)) else optr
-        print("optl: " + str(optl) + " optr: " + str(optr))
-        print("midx: " + str(midx) + " oldx: " + str(xtest)) 
 
-        cv2.rectangle((img), (optl, 0), (optl, img.shape[0]), (255, 255, 0), 1)    
-        cv2.rectangle((img), (optr, 0), (optr, img.shape[0]), (255, 255, 0), 1)    
+#        cv2.rectangle((img), (optl, 0), (optl, img.shape[0]), (255, 255, 0), 1)    
+#        cv2.rectangle((img), (optr, 0), (optr, img.shape[0]), (255, 255, 0), 1)    
 #        cv2.imshow("g", img)
 #        cv2.waitKey(0)
 
         return midx
+
+    def get_tick_width(self, img, y):
+        ticks = []
+        for x in range(0, img.shape[1]-1):
+            if img[y][x] > img[y][x+1]+1 and img[y][x] > img[y][x-1]+1:
+                ticks.append(x)
+
+        diffs = np.diff(np.asarray(ticks))
+        width = np.bincount(diffs).argmax()
+        print(width)
+
+        for l in ticks:
+            cv2.rectangle(img, (l, 0), (l, img.shape[0]), (255, 255, 0), 1) 
+        cv2.imshow("test", img)
+
+        return width
 
     def get_ticks(self, img, debug=False):
         x_mid = img.shape[1]/2
@@ -216,6 +238,8 @@ class SpectrometerAngleEstimator(object):
                         ltick = l
                     if l[0][0] > x_mid and abs(x_mid - l[0][0]) < abs(x_mid - rtick[0][0]):
                         rtick = l
+
+
 
         return (ltick, rtick, segments)
 
