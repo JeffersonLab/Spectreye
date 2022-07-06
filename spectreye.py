@@ -56,6 +56,7 @@ class Spectreye(object):
 
     # extracts angle from single frame. can be used for both images and video
     def from_frame(self, frame):
+        self.stamps = []
         self.stamp("from_frame begin")
         x_mid = frame.shape[1]/2
         y_mid = frame.shape[0]/2
