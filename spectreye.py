@@ -7,7 +7,7 @@ from imutils.object_detection import non_max_suppression
 import pytesseract
 
 # -- Spectreye --
-# Spectreye is a tool for automatically determening the angle of the Super High Momentum Spectrometer 
+# Spectreye is a tool for automatically determining the angle of the Super High Momentum Spectrometer 
 # (SHMS) and the High Momentum Spectrometer (HMS) in JLab's Experimental Hall C. This script uses
 # OpenCV and Pytesseract to extract precise angle readings from images taken by cameras mounted on
 # the spectrometers' Vernier calipers. The script is optimized for the JLab spectrometers, but can 
