@@ -1,13 +1,19 @@
-# spectreye
-
 import numpy as np
 import cv2
 import math
 import sys
 import time
-from scipy import stats
 from imutils.object_detection import non_max_suppression
 import pytesseract
+
+# -- Spectreye --
+# Spectreye is a tool for automatically determening the angle of the Super High Momentum Spectrometer 
+# (SHMS) and the High Momentum Spectrometer (HMS) in JLab's Experimental Hall C. This script uses
+# OpenCV and Pytesseract to extract precise angle readings from images taken by cameras mounted on
+# the spectrometers' Vernier calipers. The script is optimized for the JLab spectrometers, but can 
+# most likely be adapted to read images from any Vernier scale as long as the center of the caliper
+# is near the center of the image.
+# ---------------
 
 
 class Spectreye(object):
@@ -21,6 +27,7 @@ class Spectreye(object):
     font = cv2.FONT_HERSHEY_SIMPLEX
     stamps = []
     
+    # loads dnn model into memory and builds morphology elements
     def __init__(self, debug=True):
         self.stamp("init")
         self.dkernel = cv2.getStructuringElement(cv2.MORPH_DILATE, (4,4))
@@ -31,10 +38,12 @@ class Spectreye(object):
         self.lsd = cv2.createLineSegmentDetector(0)
         self.debug = debug
 
+    # adds messaged timestamp for runtime analysis
     def stamp(self, msg):
         self.stamps.append([msg, time.time()])
 
-    # shows runtime of each stamp in delta seconds from last
+    # prints runtime of each stamp in delta seconds from last
+    # TODO real logging system
     def disp_rt(self):
         self.stamp("final")
         print("\nruntime stamps\n--------------")
@@ -45,7 +54,7 @@ class Spectreye(object):
         print("runtime: " + str(total))
         print("--------------\n")
 
-
+    # extracts angle from single frame. can be used for both images and video
     def from_frame(self, frame):
         self.stamp("from_frame begin")
         x_mid = frame.shape[1]/2
@@ -177,6 +186,7 @@ class Spectreye(object):
                 break
         cv2.destroyAllWindows()
 
+    # finds starting point for proc_peak based on l/r tick guesses
     def find_mid(self, img, segments, ltick, rtick):
         pass1 = img
 
@@ -232,6 +242,7 @@ class Spectreye(object):
 
         return midx
 
+    # locates probable midpoint and tick width at a given y
     def proc_peak(self, img, y):
         x_mid = int(img.shape[1]/2)
 
@@ -320,6 +331,7 @@ class Spectreye(object):
 
         return (ltick, rtick, segments)
 
+    # looks for numbers bounding boxes using the EAST dnn
     def ocr_east(self, img):
         timg = img.copy()
         origH = timg.shape[0]/2
@@ -378,7 +390,9 @@ class Spectreye(object):
 
         # combine nearby rects that are most likely the same text into one
         # https://towardsdatascience.com/non-maximum-suppression-nms-93ce178e177c
+        self.stamp("start NMS")
         boxes = non_max_suppression(np.array(rects), probs=confidences)
+        self.stamp("end NMS")
         return (boxes, rW, rH)
 
 if __name__ == "__main__":
