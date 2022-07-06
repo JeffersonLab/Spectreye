@@ -10,7 +10,9 @@ from imutils.object_detection import non_max_suppression
 import pytesseract
 
 
-class SpectrometerAngleEstimator(object):
+class Spectreye(object):
+
+    # EAST dnn layers
     layer_names = [
             "feature_fusion/Conv_7/Sigmoid",
             "feature_fusion/concat_3"]
@@ -32,6 +34,7 @@ class SpectrometerAngleEstimator(object):
     def stamp(self, msg):
         self.stamps.append([msg, time.time()])
 
+    # shows runtime of each stamp in delta seconds from last
     def disp_rt(self):
         self.stamp("final")
         print("\nruntime stamps\n--------------")
@@ -51,9 +54,13 @@ class SpectrometerAngleEstimator(object):
         img = frame 
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+        # ltick and rtick determine the bounds of the first suspected middle
+        # tick, and are used as the basis for peak iteration
         self.stamp("get_ticks begin")
         (ltick, rtick, segments) = self.get_ticks(img, False)
         self.stamp("get_ticks end")
+
+        # determines vernier '0' location, as well as pixel/degree ratio
         (true_mid, pixel_ratio) = self.find_mid(img, segments, ltick, rtick)
         self.stamp("find_mid end") 
 
@@ -62,6 +69,8 @@ class SpectrometerAngleEstimator(object):
         final = self.lsd.drawSegments(img, np.asarray([ltick, rtick]))
         cv2.rectangle((final), (int(true_mid), 0), (int(true_mid), img.shape[0]), (255, 255, 0), 1) 
 
+        # main filter pass for both EAST and tesseract. feel free to experiment,
+        # but if you change it, keep the dilation and division together
         self.stamp("main pass begin") 
         pass1 = img
         pass1 = cv2.threshold(pass1, 127, 255, cv2.THRESH_BINARY_INV, 0)[1]
@@ -93,11 +102,17 @@ class SpectrometerAngleEstimator(object):
             endX = int(endX * rW)
             endY = int(endY * rH)
             cv2.rectangle(final, (startX, startY), (endX, endY), (0, 255, 0), 2)
+
+            # center of text bounding box
             tpos = startX + (endX-startX)/2
+
+            # find the bounding box nearest to center to use as our number
             if abs(x_mid - tpos) < abs(x_mid - cmpX):
                 cmpX = tpos
                 width = abs(endX-startX)
                 height = abs(endY-startY)
+                
+                # extra padding so numbers dont get cut off
                 boxdata = [
                         max(0, startY-50), 
                         min(frame.shape[0], endY+self.npad), 
@@ -111,7 +126,7 @@ class SpectrometerAngleEstimator(object):
             if abs(cmpX - l[0][0]) < abs(cmpX - tseg[0][0]) and l[0][1] > 175 and l[0][1] < 240:
                 tseg = l
         tmidy = int(tseg[0][1] + (tseg[0][3]-tseg[0][1])/2)
-        #tick = self.find_tick_center(pass1, tmidy, int(tseg[0][0])) 
+
         tick = tseg[0][0]
         cv2.rectangle((final), (int(tick), 0), (int(tick), frame.shape[0]), (255, 0, 0), 1)   
         #self.proc_peak(pass1, tmidy) 
@@ -128,6 +143,10 @@ class SpectrometerAngleEstimator(object):
         rawnum = pytesseract.image_to_string(numbox, lang="eng", config="--psm 6")
         self.stamp("tess end")
 
+        # puts together the final angle. this won't work for angles > 99.5,
+        # as it assumes punctuation. i haven't recieved any example images
+        # greater than that though, so i don't know if the spectrometer
+        # even rotates that far
         nstr = ""
         print(rawnum)
         for n in rawnum:
@@ -157,10 +176,6 @@ class SpectrometerAngleEstimator(object):
         cv2.destroyAllWindows()
 
     def find_mid(self, img, segments, ltick, rtick):
-        #new approach, find all contours, look for "0" with ocr and assign center
-
-        #to find center of tick, go +x and -x until maximum color value is reached
-        #choose shortest distance as true x 
         pass1 = img
 
         pass1 = cv2.GaussianBlur(pass1, (5, 5), 0)
@@ -168,10 +183,12 @@ class SpectrometerAngleEstimator(object):
 #        cv2.imshow("t", pass1)
 #        cv2.waitKey(0)
 
-        #iter, if ltick or rtick can be contained find longest
         mid = segments[0]
         x_mid = img.shape[1]/2 
 
+        # finding mid has multiple stages. first stage tries the tallest segment
+        # nearby ltick/rtick. this works on optimally set up images, but fails
+        # when the camera is poorly aligned
         opts = []
         for l in segments:
             if ltick[0][1] >= l[0][1] and ltick[0][3] <= l[0][3]:
@@ -179,6 +196,7 @@ class SpectrometerAngleEstimator(object):
                 if l[0][3] - l[0][1] > mid[0][3] - mid[0][1]:
                     mid = l
 
+        # gets rid of outliers on y axis
         cull = []
         for l in opts:
             if not (l[0][1] < ltick[0][1]-(ltick[0][3]-ltick[0][1])):
@@ -186,19 +204,18 @@ class SpectrometerAngleEstimator(object):
             elif not (l[0][3] > ltick[0][3]+(ltick[0][3]-ltick[0][1])):
                 cull.append(l)
         
+        # finds closest segment to image mid (not true mid)
         for l in cull:
             if abs(x_mid - l[0][0]) < abs(x_mid - mid[0][0]):
                 mid = l
-      
+     
+        # gets peak-based pixel width and mid prediction using original mid
+        # position as starting point for peak trawling 
         width, peak_mid = self.proc_peak(pass1, int(mid[0][1] + (mid[0][3]-mid[0][1])/2))
  
-        img = pass1
-        ytest = int(mid[0][1] + (mid[0][3]-mid[0][1])/2)
-        xtest = int(mid[0][0] - (rtick[0][0] - ltick[0][0]))
-
-#        return (self.find_tick_center(img, ytest, xtest), width)
         return (peak_mid, width)
 
+    # finds the closest peaks on the x axis in both directions and returns the closest
     def find_tick_center(self, img, ytest, xtest):
         optl, optr = 0, 0
         for x in reversed(range(1, xtest)):
@@ -211,24 +228,24 @@ class SpectrometerAngleEstimator(object):
                 break
         midx = optl if (abs(xtest-optl) > abs(xtest-optr)) else optr
 
-#        cv2.rectangle((img), (optl, 0), (optl, img.shape[0]), (255, 255, 0), 1)    
-#        cv2.rectangle((img), (optr, 0), (optr, img.shape[0]), (255, 255, 0), 1)    
-#        cv2.imshow("g", img)
-#        cv2.waitKey(0)
-
         return midx
 
     def proc_peak(self, img, y):
         x_mid = int(img.shape[1]/2)
 
+        # gets all peaks where alpha change > 2 and y = y
         ticks = []
         for x in range(0, img.shape[1]-1):
             if img[y][x] > img[y][x+1]+1 and img[y][x] > img[y][x-1]+1:
                 ticks.append(x)
 
+        # numpy magic to find the most common difference between peaks, which we
+        # take as the tick width in pixels
         diffs = np.diff(np.asarray(ticks))
         width = np.bincount(diffs).argmax()
 
+        # for each peak, finds the height of corresponding line by walking the image
+        # up and down until it suddenly gets significantly darker
         heights = []
         for l in ticks:
             uy = y
@@ -239,34 +256,35 @@ class SpectrometerAngleEstimator(object):
                 dy += 1
             heights.append(dy-uy)
 
+        # funky numpy stuff that sorts by height and takes the indicies of the 5 tallest
+        # ticks as an index slice that can be used to cull each array 
         heights = np.asarray(heights)
         opti = list(np.argpartition(heights, -5)[-5:] )
         ticks = np.asarray(ticks)
         locs = np.asarray(ticks[opti])
         heights = np.asarray(heights[opti])
         
+        # finds distance from image mid of each tick
         dists = []
         for l in locs:
             dists.append(abs(x_mid - l))
         dists = sorted(dists, reverse=True)
 
+        # i think i can just zip these values but i haven't tried
         fin = []
         for i in range(0, len(heights)):
             fin.append([locs[i], heights[i], dists[i]])
 
+        # takes 3 ticks closest to image mid and then sorts by height
         res = sorted(fin, key=lambda x: abs(x_mid - x[0]))[0:2]
         cull = sorted(res, key=lambda x: x[0])
-        
+
+        #tallest of 3 final options is the best guess for the true middle of the image
         pred_mid = cull[0][0]
-
-#        for l in list(locs):
-#            cv2.rectangle(img, (l, 0), (l, img.shape[0]), (255, 255, 0), 1) 
-#        cv2.rectangle(img, (pred_mid, 0), (pred_mid, img.shape[0]), (255, 0, 0), 1)
-#        cv2.imshow("test", img)
-
 
         return (width, pred_mid)
 
+    # uses built-in line segment detector to roughly locate hundredths ticks
     def get_ticks(self, img, debug=False):
         x_mid = img.shape[1]/2
         y_mid = img.shape[0]/2
@@ -286,9 +304,13 @@ class SpectrometerAngleEstimator(object):
         segments = []
         for i in range(0, len(lines)):
             l = lines[i]
+
+            # removes all horizontally biased lines and only keeps lines in middle 20% of image
             if abs(l[0][0] - l[0][2]) < abs(l[0][1] - l[0][3]):
                 if l[0][1] > y_mid - (0.1 * img.shape[0]) and l[0][3] < y_mid + (0.1 * img.shape[0]):
                     segments.append(l)
+
+                    # ltick and rtick are the two segments closest to the image center on either side
                     if l[0][0] < x_mid and abs(x_mid - l[0][0]) < abs(x_mid - ltick[0][0]):
                         ltick = l
                     if l[0][0] > x_mid and abs(x_mid - l[0][0]) < abs(x_mid - rtick[0][0]):
@@ -300,6 +322,7 @@ class SpectrometerAngleEstimator(object):
         timg = img.copy()
         origH = timg.shape[0]/2
 
+        # east expects all incoming images to be a square multiple of 32
         if len(timg.shape) == 2:
             timg = cv2.cvtColor(timg, cv2.COLOR_GRAY2RGB)
         (H, W) = timg.shape[:2]
@@ -310,13 +333,17 @@ class SpectrometerAngleEstimator(object):
         timg = cv2.resize(timg, (newW, newH))
         (H, W) = timg.shape[:2]
 
+        # configures data blob from the image using predetermined magic nums
         blob = cv2.dnn.blobFromImage(timg, 1.0, (W, H),
-                (123.68, 116.78, 103.94), swapRB=True, crop=False) #dont touch magic nums
+                (123.68, 116.78, 103.94), swapRB=True, crop=False) 
         self.net.setInput(blob)
         (scores, geometry) = self.net.forward(self.layer_names)
         (nrows, ncols) = scores.shape[2:4]
         rects = []
         confidences = []
+
+        # takes each returned OCR prediction from east and converts from polar
+        # to cartesian coordinates (why does east uses polar coords?? i dont know)
         for y in range(0, nrows):
             scores_data = scores[0, 0, y]
             xdata0 = geometry[0, 0, y]
@@ -326,6 +353,8 @@ class SpectrometerAngleEstimator(object):
             angles = geometry[0, 4, y]
 
             for x in range(0, ncols):
+                
+                # you can play with the acceptance threshold, but 0.5 seems to work best
                 if scores_data[x] < 0.5:
                     continue
                 (offsetX, offsetY) = (x * 4.0, y * 4.0)
@@ -340,15 +369,18 @@ class SpectrometerAngleEstimator(object):
                 startX = int(endX - w)
                 startY = int(endY - h)
                 
+                # some wacky predictions go off the image, get rid of them
                 if endY*rH < origH:
                     rects.append((startX, startY, endX, endY))
                     confidences.append(scores_data[x])
 
+        # combine nearby rects that are most likely the same text into one
+        # https://towardsdatascience.com/non-maximum-suppression-nms-93ce178e177c
         boxes = non_max_suppression(np.array(rects), probs=confidences)
         return (boxes, rW, rH)
 
 if __name__ == "__main__":
-    sae = SpectrometerAngleEstimator()
+    sae = Spectreye()
     if len(sys.argv) > 1:
         print(sys.argv[1])
         sae.from_frame(cv2.imread(sys.argv[1]))
