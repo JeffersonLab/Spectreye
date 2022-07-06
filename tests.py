@@ -21,7 +21,7 @@ def rtest(sae):
     while True:
         path = random.choice(os.listdir("images/angle_snaps/"))
         if len(path) > 4 and path[-4:] == ".jpg":
-            path = "images/" + path
+            path = "images/angle_snaps/" + path
             print(path)
             sae.from_frame(cv2.imread(path))
 
