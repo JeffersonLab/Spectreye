@@ -121,6 +121,7 @@ class Spectreye(object):
                 ]
         self.stamp("draw boxes end")
 
+        # finds nearest "big tick" to selected text box (room for improvement here)
         tseg = segments[0]
         for l in segments:
             if abs(cmpX - l[0][0]) < abs(cmpX - tseg[0][0]) and l[0][1] > 175 and l[0][1] < 240:
@@ -135,7 +136,8 @@ class Spectreye(object):
         dec_frac = (pix_frac/pixel_ratio)*0.01
        
         print("Additional distance (deg): " + str(dec_frac))
-        
+       
+        # isolate text box for additional filtering to improve image for tesseract
         numbox = pass1[boxdata[0]:boxdata[1], boxdata[2]:boxdata[3]]
         numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
 
