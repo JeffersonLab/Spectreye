@@ -100,7 +100,8 @@ class Spectreye(object):
             print(rawnum)
             cv2.imshow("Failure", timg)
             cv2.waitKey(0)
-            raise Exception("Could not locate any numbers!")
+            print("Could not locate any numbers!")
+            return -1
 
         self.stamp("draw boxes begin")
         cmpX = 0
@@ -185,6 +186,8 @@ class Spectreye(object):
             if key == ord('q'):
                 break
         cv2.destroyAllWindows()
+
+        return angle
 
     # finds starting point for proc_peak based on l/r tick guesses
     def find_mid(self, img, segments, ltick, rtick):
