@@ -71,12 +71,12 @@ class Spectreye(object):
         self.stamp("get_ticks end")
 
         # determines vernier '0' location, as well as pixel/degree ratio
-        (true_mid, pixel_ratio) = self.find_mid(img, segments, ltick, rtick)
+        (true_mid, pixel_ratio, ysplit) = self.find_mid(img, segments, ltick, rtick)
         self.stamp("find_mid end") 
 
         #print("0.01 degrees = " + str(pixel_ratio) + " pixels")
         
-        final = self.lsd.drawSegments(img, np.asarray([ltick, rtick]))
+        final = self.lsd.drawSegments(img, np.asarray([segments]))
         cv2.rectangle((final), (int(true_mid), 0), (int(true_mid), img.shape[0]), (255, 255, 0), 1) 
 
         # main filter pass for both EAST and tesseract. feel free to experiment,
@@ -105,8 +105,11 @@ class Spectreye(object):
             print("Could not locate any numbers!")
             return -1
 
+        # creates boxes around east guesses
         self.stamp("draw boxes begin")
         cmpX = 0
+        botY = 0
+        bH = 0
         boxdata = None
         for(startX, startY, endX, endY) in boxes:
             startX = int(startX * rW)
@@ -121,9 +124,12 @@ class Spectreye(object):
             # find the bounding box nearest to center to use as our number
             if abs(x_mid - tpos) < abs(x_mid - cmpX):
                 cmpX = tpos
+                botY = endY
+ 
                 width = abs(endX-startX)
                 height = abs(endY-startY)
-                
+                bH = height/2
+
                 # extra padding so numbers dont get cut off
                 boxdata = [
                         max(0, startY-50), 
@@ -133,10 +139,10 @@ class Spectreye(object):
                 ]
         self.stamp("draw boxes end")
 
-        # finds nearest "big tick" to selected text box (room for improvement here)
+        # finds nearest "big tick" to selected text box using y midpoint 
         tseg = segments[0]
         for l in segments:
-            if abs(cmpX - l[0][0]) < abs(cmpX - tseg[0][0]) and l[0][1] > 175 and l[0][1] < 240:
+            if abs(cmpX - l[0][0]) < abs(cmpX - tseg[0][0]) and l[0][1] > botY and l[0][1] < ysplit:
                 tseg = l
         tmidy = int(tseg[0][1] + (tseg[0][3]-tseg[0][1])/2)
 
@@ -181,8 +187,6 @@ class Spectreye(object):
 
         #display and poll
         cv2.imshow("Detector", final)
-        #cv2.imshow("Numbers", pass0)
-        #cv2.imshow("Box", timg)
         while True:
             key = cv2.waitKey(1)
             if key == ord('q'):
@@ -228,9 +232,9 @@ class Spectreye(object):
      
         # gets peak-based pixel width and mid prediction using original mid
         # position as starting point for peak trawling 
-        width, peak_mid = self.proc_peak(pass1, int(mid[0][1] + (mid[0][3]-mid[0][1])/2))
+        width, peak_mid, ysplit = self.proc_peak(pass1, int(mid[0][1] + (mid[0][3]-mid[0][1])/2))
  
-        return (peak_mid, width)
+        return (peak_mid, width, ysplit)
 
     # finds the closest peaks on the x axis in both directions and returns the closest
     def find_tick_center(self, img, ytest, xtest):
@@ -265,11 +269,13 @@ class Spectreye(object):
         # for each peak, finds the height of corresponding line by walking the image
         # up and down until it suddenly gets significantly darker
         heights = []
+        ysplit = 0
         for l in ticks:
             uy = y
             while img[uy][l] < img[uy-1][l]+5:
                 uy -= 1
             dy = y
+            ysplit = uy
             while img[dy][l] < img[dy+1][l]+5:
                 dy += 1
             heights.append(dy-uy)
@@ -300,7 +306,7 @@ class Spectreye(object):
         #tallest of 3 final options is the best guess for the true middle of the image
         pred_mid = cull[0][0]
 
-        return (width, pred_mid)
+        return (width, pred_mid, ysplit)
 
     # uses built-in line segment detector to roughly locate hundredths ticks
     def get_ticks(self, img, debug=False):
