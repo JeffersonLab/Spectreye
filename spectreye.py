@@ -74,7 +74,7 @@ class Spectreye(object):
         (true_mid, pixel_ratio) = self.find_mid(img, segments, ltick, rtick)
         self.stamp("find_mid end") 
 
-        print("0.01 degrees = " + str(pixel_ratio) + " pixels")
+        #print("0.01 degrees = " + str(pixel_ratio) + " pixels")
         
         final = self.lsd.drawSegments(img, np.asarray([ltick, rtick]))
         cv2.rectangle((final), (int(true_mid), 0), (int(true_mid), img.shape[0]), (255, 255, 0), 1) 
@@ -101,6 +101,7 @@ class Spectreye(object):
             print(rawnum)
             cv2.imshow("Failure", timg)
             cv2.waitKey(0)
+            cv2.destroyAllWindows()
             print("Could not locate any numbers!")
             return -1
 
@@ -146,7 +147,7 @@ class Spectreye(object):
         pix_frac = true_mid - tick
         dec_frac = (pix_frac/pixel_ratio)*0.01
        
-        print("Additional distance (deg): " + str(dec_frac))
+#        print("Additional distance (deg): " + str(dec_frac))
        
         # isolate text box for additional filtering to improve image for tesseract
         numbox = pass1[boxdata[0]:boxdata[1], boxdata[2]:boxdata[3]]
@@ -161,7 +162,7 @@ class Spectreye(object):
         # greater than that though, so i don't know if the spectrometer
         # even rotates that far
         nstr = ""
-        print(rawnum)
+        #print(rawnum)
         for n in rawnum:
             if n.isdigit():
                 nstr += n
@@ -171,11 +172,11 @@ class Spectreye(object):
             nstr = nstr[:2] + "." + nstr[2:]
 
         angle = round(float(nstr) + dec_frac, 2)
-        print(angle) 
+        #print(angle) 
 
         if self.debug:
             self.disp_rt()
-
+            print("calculated angle: " + str(angle) + " degrees")
         cv2.putText(final, str(angle), (10, 30), self.font, 1, (0, 255, 0), 2, 2)
 
         #display and poll

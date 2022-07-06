@@ -2,10 +2,13 @@ import sys
 import os
 import random
 import cv2
+import subprocess
 from spectreye import Spectreye
 
 # helper tests for running Spectreye on different image batches
 # TODO match angle snaps with encoder data for full dataset testing
+
+ds = "datasets/HallC_SHMS_HMS_2018/HallC_SpectrometerAngles2018.dat"
 
 # choose randomly from preselected test images
 def gtest(sae):
@@ -22,8 +25,16 @@ def rtest(sae):
         path = random.choice(os.listdir("images/angle_snaps/"))
         if len(path) > 4 and path[-4:] == ".jpg":
             path = "images/angle_snaps/" + path
-            print(path)
-            sae.from_frame(cv2.imread(path))
+            print("\n" + path)
+
+            datetime = subprocess.getoutput("strings " + path + " | grep \"201\"").splitlines()[0]
+            datetime = datetime.replace(":", "-", 2)
+            print(datetime)
+
+            #line = subprocess.getoutput("strings " + ds + " | grep \"" + datetime + "\"")
+            #print(line)
+
+            res = sae.from_frame(cv2.imread(path))
 
 # choose randomly from SHMS snaps
 def shms_test(sae):
