@@ -10,6 +10,8 @@ from spectreye import Spectreye
 
 ds = "datasets/HallC_SHMS_HMS_2018/HallC_SpectrometerAngles2018.dat"
 
+lowqual = ["COIN_HMS_angle_03322.jpg", "COIN_HMS_angle_03814.jpg", "HMS_angle_01870.jpg"]
+
 # choose randomly from preselected test images
 def gtest(sae):
     while True:
@@ -35,6 +37,15 @@ def rtest(sae):
             #print(line)
 
             res = sae.from_frame(cv2.imread(path))
+
+
+
+# choose randomly from selected problem images
+def prob_test(sae):
+    while True:
+        path = "images/angle_snaps/" + random.choice(lowqual)
+        print(path)
+        sae.from_frame(cv2.imread(path))
 
 # choose randomly from SHMS snaps
 def shms_test(sae):
@@ -63,6 +74,8 @@ if __name__ == "__main__":
             gtest(sae)
         elif sys.argv[1] == "r" or sys.argv[1] == "-r":
             rtest(sae)
+        elif sys.argv[1] == "p" or sys.argv[1] == "-p":
+            prob_test(sae)
         elif sys.argv[1] == "s" or sys.argv[1] == "-s":
             shms_test(sae)
         elif sys.argv[1] == "h" or sys.argv[1] == "-h":

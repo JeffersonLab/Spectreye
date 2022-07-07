@@ -62,7 +62,8 @@ class Spectreye(object):
         x_mid = frame.shape[1]/2
         y_mid = frame.shape[0]/2
 
-        img = frame 
+        img = frame
+        
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # ltick and rtick determine the bounds of the first suspected middle
@@ -94,7 +95,7 @@ class Spectreye(object):
         timg = pass1
         self.stamp("main pass end")
 
-        #self.ocr_tess(timg.copy())
+#        self.ocr_tess(frame.copy())
 
         (boxes, rW, rH) = self.ocr_east(timg)
         self.stamp("ocr_east end")
@@ -160,7 +161,11 @@ class Spectreye(object):
        
         # isolate text box for additional filtering to improve image for tesseract
         numbox = pass1[boxdata[0]:boxdata[1], boxdata[2]:boxdata[3]]
+        #numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
+        
+        numbox = cv2.GaussianBlur(numbox, (3, 3), 5)
         numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
+        numbox = cv2.threshold(numbox, 250, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU, 0)[1] 
 
         self.stamp("tess begin")
         rawnum = pytesseract.image_to_string(numbox, lang="eng", config="--psm 6")
@@ -190,6 +195,9 @@ class Spectreye(object):
 
         #display and poll
         cv2.imshow("Detector", final)
+        
+        cv2.imshow("numbox", numbox)
+
         while True:
             key = cv2.waitKey(1)
             if key == ord('q'):
@@ -396,24 +404,50 @@ class Spectreye(object):
 
     # looks for bounding boxes using pytesseract built-in ocr->rect
     def ocr_tess(self, img):
+
+        # correct lighting errors with CLAHE algorithm
+#        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        lab[:,:,0] = clahe.apply(lab[:,:,0])
+        img = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+
+        img = cv2.fastNlMeansDenoising(img,None,21,7,21) 
+        img = cv2.GaussianBlur(img, (3, 3), 5)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img = cv2.fastNlMeansDenoising(img,None,21,7,21)
+        img = cv2.GaussianBlur(img, (3, 3), 5)
+        img = cv2.fastNlMeansDenoising(img,None,21,7,21)
+#        img = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY, 0)[1] 
+
         self.stamp("begin ocr_tess")
         d = pytesseract.image_to_data(img, output_type=Output.DICT, lang="eng", config="--psm 6")
         n_boxes = len(d['level'])
         rects = []
+        confs = []
         for i in range(n_boxes):
-            if float(d['conf'][i]) > 20:
+            if float(d['conf'][i]) > 40 and d['top'][i]+d['height'][i] <= img.shape[0]/2:
                 (x, y, w, h) = (d['left'][i], d['top'][i], d['width'][i], d['height'][i])
-                cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
                 rects.append((x, y, x+w, y+h))
+                confs.append(float(d['conf'][i])/100)
 
-         
+        boxes = zip(rects, confs)
+        #boxes = non_max_suppression(np.array(rects), probs=confs)
+        #boxes = sorted(zip(rects, confs), key=lambda x: x[1], reverse=True)[0:int(len(confs)/2)]
+        #print(boxes)
+        #boxes = sorted(boxes, key=lambda x: x[0][2]*x[0][3], reverse=True)[0:1]
+        print(boxes)
+
+        for ((x, y, ex, ey), c) in boxes:
+            cv2.rectangle(img, (x, y), (ex, ey), (0, 255, 0), 2)
 
         cv2.imshow("tess", img)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
 
         self.stamp("end ocr_tess")
-        return (rects, 1, 1) # resize ratio of 1 for plug-n-play compatibility with ocr_east calls
+        return (boxes, 1, 1) # resize ratio of 1 for plug-n-play compatibility with ocr_east calls
 
     # finds the closest peaks on the x axis in both directions and returns the closest
     def find_tick_center(self, img, ytest, xtest):
