@@ -5,6 +5,7 @@ import sys
 import time
 from imutils.object_detection import non_max_suppression
 import pytesseract
+from pytesseract import Output
 
 # -- Spectreye --
 # Spectreye is a tool for automatically determining the angle of the Super High Momentum Spectrometer 
@@ -92,6 +93,8 @@ class Spectreye(object):
         pass1 = cv2.fastNlMeansDenoising(pass1,None,21,7,21)
         timg = pass1
         self.stamp("main pass end")
+
+        #self.ocr_tess(timg.copy())
 
         (boxes, rW, rH) = self.ocr_east(timg)
         self.stamp("ocr_east end")
@@ -235,21 +238,6 @@ class Spectreye(object):
         width, peak_mid, ysplit = self.proc_peak(pass1, int(mid[0][1] + (mid[0][3]-mid[0][1])/2))
  
         return (peak_mid, width, ysplit)
-
-    # finds the closest peaks on the x axis in both directions and returns the closest
-    def find_tick_center(self, img, ytest, xtest):
-        optl, optr = 0, 0
-        for x in reversed(range(1, xtest)):
-            if img[ytest][x] > img[ytest][x-1]:
-                optl = x
-                break
-        for x in range(xtest, img.shape[1]-1):
-            if img[ytest][x] > img[ytest][x+1]:
-                optr = x
-                break
-        midx = optl if (abs(xtest-optl) > abs(xtest-optr)) else optr
-
-        return midx
 
     # locates probable midpoint and tick width at a given y
     def proc_peak(self, img, y):
@@ -405,6 +393,43 @@ class Spectreye(object):
         boxes = non_max_suppression(np.array(rects), probs=confidences)
         self.stamp("end NMS")
         return (boxes, rW, rH)
+
+    # looks for bounding boxes using pytesseract built-in ocr->rect
+    def ocr_tess(self, img):
+        self.stamp("begin ocr_tess")
+        d = pytesseract.image_to_data(img, output_type=Output.DICT, lang="eng", config="--psm 6")
+        n_boxes = len(d['level'])
+        rects = []
+        for i in range(n_boxes):
+            if float(d['conf'][i]) > 20:
+                (x, y, w, h) = (d['left'][i], d['top'][i], d['width'][i], d['height'][i])
+                cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                rects.append((x, y, x+w, y+h))
+
+         
+
+        cv2.imshow("tess", img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+        self.stamp("end ocr_tess")
+        return (rects, 1, 1) # resize ratio of 1 for plug-n-play compatibility with ocr_east calls
+
+    # finds the closest peaks on the x axis in both directions and returns the closest
+    def find_tick_center(self, img, ytest, xtest):
+        optl, optr = 0, 0
+        for x in reversed(range(1, xtest)):
+            if img[ytest][x] > img[ytest][x-1]:
+                optl = x
+                break
+        for x in range(xtest, img.shape[1]-1):
+            if img[ytest][x] > img[ytest][x+1]:
+                optr = x
+                break
+        midx = optl if (abs(xtest-optl) > abs(xtest-optr)) else optr
+
+        return midx
+
 
 if __name__ == "__main__":
     sae = Spectreye()
