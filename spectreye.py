@@ -171,12 +171,22 @@ class Spectreye(object):
         # isolate text box for additional filtering to improve image for tesseract
         numbox = pass1[boxdata[0]:boxdata[1], boxdata[2]:boxdata[3]]
         #numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
-        
-        numbox = cv2.GaussianBlur(numbox, (3, 3), 5)
-        numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
-        numbox = cv2.morphologyEx(numbox, cv2.MORPH_OPEN, self.okernel)
-        numbox = cv2.threshold(numbox, 210, 255, cv2.THRESH_BINARY, 0)[1] 
-        #numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
+       
+
+        img = numbox
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        lab[:,:,0] = clahe.apply(lab[:,:,0])
+        lab[:,:,0] = clahe.apply(lab[:,:,0])
+        img = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+        numbox = img
+
+#        numbox = cv2.GaussianBlur(numbox, (3, 3), 5)
+        nmbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
+#        numbox = cv2.morphologyEx(numbox, cv2.MORPH_OPEN, self.okernel)
+#        numbox = cv2.threshold(numbox, 240, 255, cv2.THRESH_BINARY, 0)[1] 
+#        numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
 
         self.stamp("tess begin")
         rawnum = pytesseract.image_to_string(numbox, lang="eng", config="--psm 6")
@@ -234,6 +244,7 @@ class Spectreye(object):
             'final': str(angle),
             'reading': str(reading),
             'tick': str(tick_angle),
+            'runtime': str(self.stamps[len(self.stamps)-1][1] - self.stamps[0][1]),
             'message': msg
         }
         return json.dumps(dat, indent=4)

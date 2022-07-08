@@ -28,15 +28,18 @@ def qtest():
     sae = Spectreye(False)
     vals = [19.68, 28.51, 19.71, 33.02, 47.61, 20.96, 21.41]
     angles = []
+    times = []
     for i in range(0, len(vals)):
         path = "images/test" + str(i+2) + ".jpg"
         res = json.loads(sae.from_frame(cv2.imread(path)))
         angle = float(res.get("final"))
         angles.append(angle)
+        t = res.get("runtime")
+        times.append(t)
 
     print("vis  | spectreye")
     for i in range(0, len(angles)):
-        print(str(vals[i]) + " " + str(angles[i]))
+        print(str(vals[i]) + " " + str(angles[i]) + " " + str(times[i])[0:5] + "s")
 
 # choose randomly from all angle snaps
 def rtest(sae):
