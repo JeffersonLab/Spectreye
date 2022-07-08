@@ -3,6 +3,7 @@ import cv2
 import math
 import sys
 import time
+import json
 from imutils.object_detection import non_max_suppression
 import pytesseract
 from pytesseract import Output
@@ -17,6 +18,10 @@ from pytesseract import Output
 # ---------------
 
 
+C_FAILURE = -1
+C_SUCCESS =  0
+C_NOREAD  =  1
+
 class Spectreye(object):
 
     # EAST dnn layers
@@ -24,7 +29,7 @@ class Spectreye(object):
             "feature_fusion/Conv_7/Sigmoid",
             "feature_fusion/concat_3"]
 
-    npad = 100
+    npad = 100 
     font = cv2.FONT_HERSHEY_SIMPLEX
     stamps = []
     
@@ -165,7 +170,7 @@ class Spectreye(object):
         
         numbox = cv2.GaussianBlur(numbox, (3, 3), 5)
         numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
-        numbox = cv2.threshold(numbox, 250, 255, cv2.THRESH_BINARY, 0)[1] 
+        numbox = cv2.threshold(numbox, 245, 255, cv2.THRESH_BINARY, 0)[1] 
 
         self.stamp("tess begin")
         rawnum = pytesseract.image_to_string(numbox, lang="eng", config="--psm 6")
@@ -204,7 +209,25 @@ class Spectreye(object):
                     break
             cv2.destroyAllWindows()
 
-        return angle
+        return self.build_res(angle=angle, tick_angle=dec_frac)
+
+    # create json return object with angle data and success result
+    def build_res(self, name=None, angle=None, tick_angle=None, msg=None):
+        if angle != None:
+            status = C_SUCCESS
+        elif tick_angle != None:
+            status = C_NOREAD
+        else:
+            status = C_FAILURE
+
+        dat = {
+            'status': str(status),
+            'name': name,
+            'angle': str(angle),
+            'tick_angle': str(tick_angle),
+            'message': msg
+        }
+        return json.dumps(dat, indent=4)
 
     # finds starting point for proc_peak based on l/r tick guesses
     def find_mid(self, img, segments, ltick, rtick):
