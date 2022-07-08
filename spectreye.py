@@ -175,7 +175,7 @@ class Spectreye(object):
         numbox = cv2.GaussianBlur(numbox, (3, 3), 5)
         numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
         numbox = cv2.morphologyEx(numbox, cv2.MORPH_OPEN, self.okernel)
-        numbox = cv2.threshold(numbox, 245, 255, cv2.THRESH_BINARY, 0)[1] 
+        numbox = cv2.threshold(numbox, 210, 255, cv2.THRESH_BINARY, 0)[1] 
         #numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
 
         self.stamp("tess begin")
