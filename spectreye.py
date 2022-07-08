@@ -165,7 +165,7 @@ class Spectreye(object):
         
         numbox = cv2.GaussianBlur(numbox, (3, 3), 5)
         numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
-        numbox = cv2.threshold(numbox, 250, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU, 0)[1] 
+        numbox = cv2.threshold(numbox, 250, 255, cv2.THRESH_BINARY, 0)[1] 
 
         self.stamp("tess begin")
         rawnum = pytesseract.image_to_string(numbox, lang="eng", config="--psm 6")
@@ -191,18 +191,18 @@ class Spectreye(object):
         if self.debug:
             self.disp_rt()
             print("calculated angle: " + str(angle) + " degrees")
-        cv2.putText(final, str(angle), (10, 30), self.font, 1, (0, 255, 0), 2, 2)
+            cv2.putText(final, str(angle), (10, 30), self.font, 1, (0, 255, 0), 2, 2)
 
-        #display and poll
-        cv2.imshow("Detector", final)
+            #display and poll
+            cv2.imshow("Detector", final)
         
-        cv2.imshow("numbox", numbox)
+            cv2.imshow("numbox", numbox)
 
-        while True:
-            key = cv2.waitKey(1)
-            if key == ord('q'):
-                break
-        cv2.destroyAllWindows()
+            while True:
+                key = cv2.waitKey(1)
+                if key == ord('q'):
+                    break
+            cv2.destroyAllWindows()
 
         return angle
 

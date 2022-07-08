@@ -33,8 +33,8 @@ def rtest(sae):
             datetime = datetime.replace(":", "-", 2)
             print(datetime)
 
-            #line = subprocess.getoutput("strings " + ds + " | grep \"" + datetime + "\"")
-            #print(line)
+            line = subprocess.getoutput("strings " + ds + " | grep \"" + datetime + "\"")
+            print(line)
 
             res = sae.from_frame(cv2.imread(path))
 
