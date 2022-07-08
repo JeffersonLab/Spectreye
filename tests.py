@@ -3,6 +3,7 @@ import os
 import random
 import cv2
 import subprocess
+import json
 from spectreye import Spectreye
 
 # helper tests for running Spectreye on different image batches
@@ -14,12 +15,28 @@ lowqual = ["COIN_HMS_angle_03322.jpg", "COIN_HMS_angle_03814.jpg", "HMS_angle_01
 
 # choose randomly from preselected test images
 def gtest(sae):
-    while True:
-        path = random.choice(os.listdir("images/"))
+    images = os.listdir("images/")
+    random.shuffle(images)
+    for path in images:
         if len(path) > 4 and path[-4:] == ".jpg":
             path = "images/" + path
             print(path)
             sae.from_frame(cv2.imread(path))
+
+# quick gtest checker
+def qtest():
+    sae = Spectreye(False)
+    vals = [19.68, 28.51, 19.71, 33.02, 47.61, 20.96, 21.41]
+    angles = []
+    for i in range(0, len(vals)):
+        path = "images/test" + str(i+2) + ".jpg"
+        res = json.loads(sae.from_frame(cv2.imread(path)))
+        angle = float(res.get("final"))
+        angles.append(angle)
+
+    print("vis  | spectreye")
+    for i in range(0, len(angles)):
+        print(str(vals[i]) + " " + str(angles[i]))
 
 # choose randomly from all angle snaps
 def rtest(sae):
@@ -72,6 +89,8 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] == "g" or sys.argv[1] == "-g":
             gtest(sae)
+        elif sys.argv[1] == "q" or sys.argv[1] == "-q":
+            qtest()
         elif sys.argv[1] == "r" or sys.argv[1] == "-r":
             rtest(sae)
         elif sys.argv[1] == "p" or sys.argv[1] == "-p":

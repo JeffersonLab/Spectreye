@@ -106,13 +106,17 @@ class Spectreye(object):
         self.stamp("ocr_east end")
 
         if len(boxes) == 0:
-            rawnum = pytesseract.image_to_string(timg, lang="eng", config="--psm 6")
-            print(rawnum)
-            cv2.imshow("Failure", timg)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-            print("Could not locate any numbers!")
-            return -1
+            (boxes, rW, rH) = self.ocr_tess(timg)
+
+        if len(boxes) == 0:
+            if self.debug:
+                rawnum = pytesseract.image_to_string(timg, lang="eng", config="--psm 6")
+                print(rawnum)
+                cv2.imshow("Failure", timg)
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
+                print("Could not locate any numbers!")
+            return self.build_res()
 
         # creates boxes around east guesses
         self.stamp("draw boxes begin")
@@ -170,7 +174,9 @@ class Spectreye(object):
         
         numbox = cv2.GaussianBlur(numbox, (3, 3), 5)
         numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
+        numbox = cv2.morphologyEx(numbox, cv2.MORPH_OPEN, self.okernel)
         numbox = cv2.threshold(numbox, 245, 255, cv2.THRESH_BINARY, 0)[1] 
+        #numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
 
         self.stamp("tess begin")
         rawnum = pytesseract.image_to_string(numbox, lang="eng", config="--psm 6")
@@ -209,10 +215,12 @@ class Spectreye(object):
                     break
             cv2.destroyAllWindows()
 
-        return self.build_res(angle=angle, tick_angle=dec_frac)
+        obj = self.build_res(angle=angle, tick_angle=dec_frac, reading=nstr)
+        #print(obj)
+        return obj
 
     # create json return object with angle data and success result
-    def build_res(self, name=None, angle=None, tick_angle=None, msg=None):
+    def build_res(self, name=None, angle=None, tick_angle=None, reading=None, msg=None):
         if angle != None:
             status = C_SUCCESS
         elif tick_angle != None:
@@ -223,8 +231,9 @@ class Spectreye(object):
         dat = {
             'status': str(status),
             'name': name,
-            'angle': str(angle),
-            'tick_angle': str(tick_angle),
+            'final': str(angle),
+            'reading': str(reading),
+            'tick': str(tick_angle),
             'message': msg
         }
         return json.dumps(dat, indent=4)
@@ -325,7 +334,7 @@ class Spectreye(object):
         #tallest of 3 final options is the best guess for the true middle of the image
         pred_mid = cull[0][0]
 
-        return (width, pred_mid, ysplit)
+        return (abs(width), pred_mid, ysplit)
 
     # uses built-in line segment detector to roughly locate hundredths ticks
     def get_ticks(self, img, debug=False):
@@ -427,9 +436,9 @@ class Spectreye(object):
 
     # looks for bounding boxes using pytesseract built-in ocr->rect
     def ocr_tess(self, img):
-
+        print("using tess ocr")
         # correct lighting errors with CLAHE algorithm
-#        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
         lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         lab[:,:,0] = clahe.apply(lab[:,:,0])
@@ -451,9 +460,10 @@ class Spectreye(object):
         confs = []
         for i in range(n_boxes):
             if float(d['conf'][i]) > 40 and d['top'][i]+d['height'][i] <= img.shape[0]/2:
-                (x, y, w, h) = (d['left'][i], d['top'][i], d['width'][i], d['height'][i])
-                rects.append((x, y, x+w, y+h))
-                confs.append(float(d['conf'][i])/100)
+                if float(d['width'][i]) > float(d['height'][i]):
+                    (x, y, w, h) = (d['left'][i], d['top'][i], d['width'][i], d['height'][i])
+                    rects.append((x, y, x+w, y+h))
+                    confs.append(float(d['conf'][i])/100)
 
         boxes = zip(rects, confs)
         #boxes = non_max_suppression(np.array(rects), probs=confs)
@@ -470,7 +480,7 @@ class Spectreye(object):
         cv2.destroyAllWindows()
 
         self.stamp("end ocr_tess")
-        return (boxes, 1, 1) # resize ratio of 1 for plug-n-play compatibility with ocr_east calls
+        return (rects, 1, 1) # resize ratio of 1 for plug-n-play compatibility with ocr_east calls
 
     # finds the closest peaks on the x axis in both directions and returns the closest
     def find_tick_center(self, img, ytest, xtest):
