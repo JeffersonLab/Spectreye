@@ -183,7 +183,7 @@ class Spectreye(object):
         numbox = img
 
 #        numbox = cv2.GaussianBlur(numbox, (3, 3), 5)
-        nmbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
+#        nmbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
 #        numbox = cv2.morphologyEx(numbox, cv2.MORPH_OPEN, self.okernel)
 #        numbox = cv2.threshold(numbox, 240, 255, cv2.THRESH_BINARY, 0)[1] 
 #        numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
@@ -201,6 +201,8 @@ class Spectreye(object):
         for n in rawnum:
             if n.isdigit():
                 nstr += n
+            if n == '\n':
+                break
         if len(nstr) < 3:
             nstr = nstr + ".0"
         else:
@@ -226,7 +228,8 @@ class Spectreye(object):
             cv2.destroyAllWindows()
 
         obj = self.build_res(angle=angle, tick_angle=dec_frac, reading=nstr)
-        #print(obj)
+        if self.debug:
+            print(obj)
         return obj
 
     # create json return object with angle data and success result
