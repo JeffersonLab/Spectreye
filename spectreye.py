@@ -4,6 +4,7 @@ import math
 import sys
 import time
 import json
+from enum import Enum
 from imutils.object_detection import non_max_suppression
 import pytesseract
 from pytesseract import Output
@@ -18,11 +19,25 @@ from pytesseract import Output
 # ---------------
 
 
-C_FAILURE = -1
-C_SUCCESS =  0
-C_NOREAD  =  1
+# return codes for json object
+class RetCode(Enum):
+    FAILURE = -1
+    SUCCESS =  0
+    NOREAD  =  1
+
+# this should ideally always be known, but some training images are unknown
+class DeviceType(Enum):
+    UNKNOWN = -1
+    HMS     =  0
+    SHMS    =  1
 
 class Spectreye(object):
+
+    # angle ranges. consider failure if outside bounds, or move decimal
+    HMS_MIN = 10.5
+    HMS_MAX = 90.0
+    SHMS_MIN = 5.5
+    SHMS_MAX =  25
 
     # EAST dnn layers
     layer_names = [
@@ -61,7 +76,7 @@ class Spectreye(object):
         print("--------------\n")
 
     # extracts angle from single frame. can be used for both images and video
-    def from_frame(self, frame):
+    def from_frame(self, frame, dtype=DeviceType.UNKNOWN):
         self.stamps = []
         self.stamp("from_frame begin")
         x_mid = frame.shape[1]/2
@@ -208,7 +223,20 @@ class Spectreye(object):
         else:
             nstr = nstr[:2] + "." + nstr[2:]
 
-        angle = round(float(nstr) + dec_frac, 2)
+        nstr = float(nstr)
+        if nstr < self.HMS_MIN:
+            angle = None
+        else:
+            angle = round(nstr + dec_frac, 2)
+        if dtype == DeviceType.SHMS:
+            if angle > self.SHMS_MAX:
+                angle = angle / 10
+            if angle < self.SHMS_MIN:
+                angle = None
+        elif dtype == DeviceType.HMS:
+            if angle > self.HMS_MAX:
+                angle = angle / 10
+
         #print(angle) 
 
         if self.debug:
@@ -233,13 +261,13 @@ class Spectreye(object):
         return obj
 
     # create json return object with angle data and success result
-    def build_res(self, name=None, angle=None, tick_angle=None, reading=None, msg=None):
+    def build_res(self, name=None, angle=None, tick_angle=None, reading=None, dtype=DeviceType.UNKNOWN):
         if angle != None:
-            status = C_SUCCESS
+            status = RetCode.SUCCESS
         elif tick_angle != None:
-            status = C_NOREAD
+            status = RetCode.NOREAD
         else:
-            status = C_FAILURE
+            status = RetCode.FAILURE
 
         dat = {
             'status': str(status),
@@ -248,7 +276,7 @@ class Spectreye(object):
             'reading': str(reading),
             'tick': str(tick_angle),
             'runtime': str(self.stamps[len(self.stamps)-1][1] - self.stamps[0][1]),
-            'message': msg
+            'device': dtype.name
         }
         return json.dumps(dat, indent=4)
 
