@@ -172,9 +172,10 @@ class Spectreye(object):
         for l in segments:
             if abs(cmpX - l[0][0]) < abs(cmpX - tseg[0][0]) and l[0][1] > botY and l[0][1] < ysplit:
                 tseg = l
-        tmidy = int(tseg[0][1] + (tseg[0][3]-tseg[0][1])/2)
+        tmidy = int(tseg[0][1] + ((tseg[0][3]-tseg[0][1])/4)*3)
 
         tick = tseg[0][0]
+
         cv2.rectangle((final), (int(tick), 0), (int(tick), frame.shape[0]), (255, 0, 0), 1)   
         #self.proc_peak(pass1, tmidy) 
         
@@ -270,10 +271,10 @@ class Spectreye(object):
             status = RetCode.FAILURE
 
         dat = {
-            'status': str(status),
+            'status': status.name,
             'name': name,
-            'final': str(angle),
-            'reading': str(reading),
+            'angle': str(angle),
+            'mark': str(reading),
             'tick': str(tick_angle),
             'runtime': str(self.stamps[len(self.stamps)-1][1] - self.stamps[0][1]),
             'device': dtype.name
@@ -525,14 +526,14 @@ class Spectreye(object):
         return (rects, 1, 1) # resize ratio of 1 for plug-n-play compatibility with ocr_east calls
 
     # finds the closest peaks on the x axis in both directions and returns the closest
-    def find_tick_center(self, img, ytest, xtest):
+    def find_tick_center(self, img, ytest, xtest, delta=0):
         optl, optr = 0, 0
         for x in reversed(range(1, xtest)):
-            if img[ytest][x] > img[ytest][x-1]:
+            if img[ytest][x] > img[ytest][x-1]+delta:
                 optl = x
                 break
         for x in range(xtest, img.shape[1]-1):
-            if img[ytest][x] > img[ytest][x+1]:
+            if img[ytest][x] > img[ytest][x+1]+delta:
                 optr = x
                 break
         midx = optl if (abs(xtest-optl) > abs(xtest-optr)) else optr
