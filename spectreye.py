@@ -38,7 +38,7 @@ class Spectreye(object):
     HMS_MIN = 10.5
     HMS_MAX = 90.0
     SHMS_MIN = 5.5
-    SHMS_MAX =  25
+    SHMS_MAX =  35
 
     # EAST dnn layers
     layer_names = [
@@ -240,7 +240,7 @@ class Spectreye(object):
         #print(rawnum)
         for n in rawnum:
             if n.isdigit():
-                nstr += n
+                nstr +=n
             if n == '\n':
                 break
         if len(nstr) < 3:
@@ -249,20 +249,19 @@ class Spectreye(object):
             nstr = nstr[:2] + "." + nstr[2:]
 
         mark = float(nstr)
-        #if mark < self.HMS_MIN:
-        #    angle = 0.0
-        #else:
-        #
-        #    if dtype == DeviceType.SHMS:
-        #        if mark > self.SHMS_MAX:
-        #            mark = mark / 10
-        #        if mark < self.SHMS_MIN:
-        #            mark = 0.0
-        #    elif dtype == DeviceType.HMS:
-        #        if mark > self.HMS_MAX:
-        #            mark = mark / 10
+        if mark < self.HMS_MIN:
+            angle = None
+        else:
+            if dtype == DeviceType.SHMS:
+                if mark > self.SHMS_MAX:
+                    mark = mark / 10
+                if mark < self.SHMS_MIN:
+                    mark = None
+            elif dtype == DeviceType.HMS:
+                if mark > self.HMS_MAX:
+                    mark = mark / 10
+            angle = round(mark + dec_frac, 2)
 
-        angle = round(mark + dec_frac, 2)
         #print(angle) 
 
         if self.debug:
