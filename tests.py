@@ -32,7 +32,7 @@ def qtest():
     for i in range(0, len(vals)):
         path = "images/qtest/" + os.listdir("images/qtest")[i]
         print(path)
-        res = json.loads(sae.from_frame(cv2.imread(path), ipath=path))
+        res = json.loads(sae.from_image(path))
         print(res)
         angle = float(res.get("angle"))
         angles.append(angle)
@@ -50,14 +50,7 @@ def rtest(sae):
         if len(path) > 4 and path[-4:] == ".jpg":
             path = "images/angle_snaps/" + path
 
-            if "SHMS" in path:
-                dev = DeviceType.SHMS
-            elif "HMS" in path:
-                dev = DeviceType.HMS
-            else:
-                continue
-
-            res = sae.from_frame(cv2.imread(path), dtype=dev, ipath=path)
+            res = sae.from_image("path", dtype=dev)
             reading = cmp_reading(res)
 
 
@@ -77,15 +70,7 @@ def shms_test(sae):
             if path == "":
                 continue
 
-            print(path)
-            if "SHMS" in path:
-                dev = DeviceType.SHMS
-            elif "HMS" in path:
-                dev = DeviceType.HMS
-            else:
-                continue
-
-            res = sae.from_frame(cv2.imread(path), dtype=dev, ipath=path)
+            res = sae.from_image(path, dtype=dev)
             reading = cmp_reading(res)
 
 # choose randomly from HMS snaps
@@ -97,15 +82,7 @@ def hms_test(sae):
             if path == "":
                 continue
 
-            print(path)
-            if "SHMS" in path:
-                dev = DeviceType.SHMS
-            elif "HMS" in path:
-                dev = DeviceType.HMS
-            else:
-                continue
-
-            res = sae.from_frame(cv2.imread(path), dtype=dev, ipath=path)
+            res = sae.from_image(path, dtype=dev)
             reading = cmp_reading(res)
 
 
