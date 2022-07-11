@@ -7,7 +7,6 @@ import json
 from spectreye import Spectreye
 
 # helper tests for running Spectreye on different image batches
-# TODO match angle snaps with encoder data for full dataset testing
 
 ds = "datasets/HallC_SHMS_HMS_2018/HallC_SpectrometerAngles2018.dat"
 
