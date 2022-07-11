@@ -181,6 +181,8 @@ class Spectreye(object):
                         max(0, startX-self.npad), 
                         min(frame.shape[1], endX+self.npad)
                 ]
+
+        cv2.rectangle(final, (startX, startY), (endX, endY), (0, 255, 0), 2)
         self.stamp("draw boxes end")
 
         # finds nearest "big tick" to selected text box using y midpoint 
@@ -191,6 +193,10 @@ class Spectreye(object):
         tmidy = int(tseg[0][1] + ((tseg[0][3]-tseg[0][1])/4)*3)
 
         tick = tseg[0][0]
+
+        if tick > endX or tick > startX:
+            tick = startX + width/2
+#            tick = self.proc_peak(pass1, tmidy)
 
         cv2.rectangle((final), (int(tick), 0), (int(tick), frame.shape[0]), (255, 0, 0), 1)   
         #self.proc_peak(pass1, tmidy) 
