@@ -22,9 +22,9 @@ from pytesseract import Output
 
 # return codes for json object
 class RetCode(Enum):
-    FAILURE = -1
-    SUCCESS =  0
-    NOREAD  =  1
+    FAILURE = -1 # could not read at all
+    SUCCESS =  0 # successfully found both angle and tick
+    NOREAD  =  1 # couldn't read angle mark but calculated tick distance
 
 # this should ideally always be known, but some training images are unknown
 class DeviceType(Enum):
@@ -99,6 +99,8 @@ class Spectreye(object):
             elif "_HMS" in ipath:
                 dtype=DeviceType.HMS
 
+        timestamp = extract_timestamp(ipath) if ipath != None else None
+
         img = frame        
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
@@ -147,7 +149,7 @@ class Spectreye(object):
                 cv2.waitKey(0)
                 cv2.destroyAllWindows()
                 print("Could not locate any numbers!")
-            return self.build_res()
+            return self.build_res(dtype=dtype, ts=timestamp)
 
         # creates boxes around east guesses
         self.stamp("draw boxes begin")
@@ -194,7 +196,7 @@ class Spectreye(object):
 
         tick = tseg[0][0]
 
-        if tick > endX or tick > startX:
+        if tick > endX or tick < startX:
             tick = startX + width/2
 #            tick = self.proc_peak(pass1, tmidy)
 
@@ -279,7 +281,6 @@ class Spectreye(object):
                     break
             cv2.destroyAllWindows()
 
-        timestamp = extract_timestamp(ipath) if ipath != None else None
         
         obj = self.build_res(angle=angle, dtype=dtype, tick_angle=dec_frac, reading=nstr, ts=timestamp)
         if self.debug:
@@ -539,7 +540,7 @@ class Spectreye(object):
         #boxes = sorted(zip(rects, confs), key=lambda x: x[1], reverse=True)[0:int(len(confs)/2)]
         #print(boxes)
         #boxes = sorted(boxes, key=lambda x: x[0][2]*x[0][3], reverse=True)[0:1]
-        print(boxes)
+        #print(boxes)
 
         for ((x, y, ex, ey), c) in boxes:
             cv2.rectangle(img, (x, y), (ex, ey), (0, 255, 0), 2)

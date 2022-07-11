@@ -65,24 +65,26 @@ def prob_test(sae):
 def shms_test(sae):
     while True:
         path = random.choice(os.listdir("images/angle_snaps/"))
+        print(path)
         if len(path) > 4 and path[-4:] == ".jpg" and "_SHMS" in path:
             path = "images/angle_snaps/" + path
             if path == "":
                 continue
 
-            res = sae.from_image(path, dtype=dev)
+            res = sae.from_image(path)
             reading = cmp_reading(res)
 
 # choose randomly from HMS snaps
 def hms_test(sae):
     while True:
         path = random.choice(os.listdir("images/angle_snaps/"))
+        print(path)
         if len(path) > 4 and path[-4:] == ".jpg" and "_HMS" in path:
             path = "images/angle_snaps/" + path
             if path == "":
                 continue
 
-            res = sae.from_image(path, dtype=dev)
+            res = sae.from_image(path)
             reading = cmp_reading(res)
 
 
