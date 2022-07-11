@@ -76,6 +76,16 @@ class Spectreye(object):
         print("runtime: " + str(total))
         print("--------------\n")
 
+    # wrapper for reading from image
+    def from_image(self, path, cmp=None, dtype=DeviceType.UNKNOWN):
+        if dtype == DeviceType.UNKNOWN:
+            if "SHMS" in path:
+                dtype = DeviceType.SHMS
+            elif "HMS" in path:
+                dtype = DeviceType.HMS
+
+        return self.from_frame(cv2.imread(path), dtype=dtype, ipath=path)
+
     # extracts angle from single frame. can be used for both images and video
     def from_frame(self, frame, dtype=DeviceType.UNKNOWN, ipath=None):
         self.stamps = []
@@ -564,4 +574,4 @@ if __name__ == "__main__":
         print(sys.argv[1])
         sae.from_frame(cv2.imread(sys.argv[1]), ipath=sys.argv[1])
     else:
-        sae.from_frame(cv2.imread("images/test2.jpg"), ipath="images/test2.jpg")
+        sae.from_image("images/qtest/HMS_0.jpg", cmp=19.68) 
