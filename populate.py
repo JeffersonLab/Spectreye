@@ -2,6 +2,8 @@ import sys
 import os
 import subprocess as sp
 import shutil
+import ciso8601
+import time
 
 # helper script to create and populate directories with SHMS/HMS images that have encodings.
 
@@ -9,9 +11,22 @@ encodings = "datasets/HallC_SHMS_HMS_2018/HallC_SpectrometerAngles2018.dat"
 source    = "images/angle_snaps/"
 dest      = "datasets/angle_marks/"
 data      = "data.csv"
+tldest    = "datasets/timeline.csv"
 
 # matches all dates
 regex_fmt = "[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])"
+
+def build_timeline():
+    lines = open(encodings, "r").read().splitlines()[1:]
+    hms_segs  = []
+    shms_segs = []
+
+    for l in lines:
+        stamp = ciso8601.parse_datetime(l.split()[0:2])
+        ts = time.mktime(stamp.timetuple())
+        print(ts)
+        return
+    
 
 def populate_images():
     prelim = os.listdir(source)
@@ -25,7 +40,7 @@ def populate_images():
         os.mkdir(dest + "/hms")
  
     hfile = open(dest + "hms/data.csv", "w+")
-    sfile = open(dest + "/shms/data.csv", "w+")
+    sfile = open(dest + "shms/data.csv", "w+")
 
     print("Spectreye -- populating image data directories...")
     c = 0
