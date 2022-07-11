@@ -31,7 +31,7 @@ def qtest():
     times = []
     for i in range(0, len(vals)):
         path = "images/test" + str(i+2) + ".jpg"
-        res = json.loads(sae.from_frame(cv2.imread(path)))
+        res = json.loads(sae.from_frame(cv2.imread(path), path))
         angle = float(res.get("angle"))
         angles.append(angle)
         t = res.get("runtime")

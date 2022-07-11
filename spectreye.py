@@ -4,6 +4,7 @@ import math
 import sys
 import time
 import json
+import subprocess as sp
 from enum import Enum
 from imutils.object_detection import non_max_suppression
 import pytesseract
@@ -76,7 +77,7 @@ class Spectreye(object):
         print("--------------\n")
 
     # extracts angle from single frame. can be used for both images and video
-    def from_frame(self, frame, dtype=DeviceType.UNKNOWN):
+    def from_frame(self, frame, dtype=DeviceType.UNKNOWN, ipath=None):
         self.stamps = []
         self.stamp("from_frame begin")
         x_mid = frame.shape[1]/2
@@ -256,13 +257,15 @@ class Spectreye(object):
                     break
             cv2.destroyAllWindows()
 
-        obj = self.build_res(angle=angle, tick_angle=dec_frac, reading=nstr)
+        timestamp = extract_timestamp(ipath) if ipath != None else None
+        
+        obj = self.build_res(angle=angle, tick_angle=dec_frac, reading=nstr, ts=timestamp)
         if self.debug:
             print(obj)
         return obj
 
     # create json return object with angle data and success result
-    def build_res(self, name=None, angle=None, tick_angle=None, reading=None, dtype=DeviceType.UNKNOWN):
+    def build_res(self, name=None, angle=None, tick_angle=None, reading=None, dtype=DeviceType.UNKNOWN, ts=None):
         if angle != None:
             status = RetCode.SUCCESS
         elif tick_angle != None:
@@ -277,7 +280,8 @@ class Spectreye(object):
             'mark': str(reading),
             'tick': str(tick_angle),
             'runtime': str(self.stamps[len(self.stamps)-1][1] - self.stamps[0][1]),
-            'device': dtype.name
+            'device': dtype.name,
+            'timestamp': ts
         }
         return json.dumps(dat, indent=4)
 
@@ -540,11 +544,18 @@ class Spectreye(object):
 
         return midx
 
+# uses gnu strings to locate the first timestamp string from within a binary
+# only tested on angle_snap images, but should work for most jpgs 
+# MUST use -P flag for perl-style regex to work
+def extract_timestamp(path):
+    datetime = sp.getoutput("strings " + path + " | grep -P \"(19|20)[\d]{2,2}\"").splitlines()[0]
+    datetime = datetime.replace(":", "-", 2)
+    return datetime
 
 if __name__ == "__main__":
     sae = Spectreye()
     if len(sys.argv) > 1:
         print(sys.argv[1])
-        sae.from_frame(cv2.imread(sys.argv[1]))
+        sae.from_frame(cv2.imread(sys.argv[1]), ipath=sys.argv[1])
     else:
-        sae.from_frame(cv2.imread("images/test2.jpg"))
+        sae.from_frame(cv2.imread("images/test2.jpg"), ipath="images/test2.jpg")
