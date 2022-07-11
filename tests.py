@@ -49,8 +49,8 @@ def rtest(sae):
         path = random.choice(os.listdir("images/angle_snaps/"))
         if len(path) > 4 and path[-4:] == ".jpg":
             path = "images/angle_snaps/" + path
-
-            res = sae.from_image("path", dtype=dev)
+            print(path)
+            res = sae.from_image(path)
             reading = cmp_reading(res)
 
 
