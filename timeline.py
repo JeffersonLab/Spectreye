@@ -4,8 +4,8 @@ import subprocess as sp
 import shutil
 import ciso8601
 import time
+import json
 from spectreye import DeviceType, RetCode
-from sp
 # helper script to create timeline csv with each angle change for data comparison
 
 encodings = "datasets/HallC_SHMS_HMS_2018/HallC_SpectrometerAngles2018.dat"
@@ -63,27 +63,27 @@ def cmp_reading(obj):
     ts = int(time.mktime(stamp.timetuple()))
 
     # compare time against angle changes to find correct range
-    encoder = -1
+    enc_ang = -1
     timeline = open(tlpath, "r").read().splitlines()
     for i in range(0, len(timeline)-1):
         atime, acmp = tuple(timeline[i].split(",")[0:2])
-        ntime, timeline[i+1].split(",")[0]
+        ntime = timeline[i+1].split(",")[0]
 
-        if ts > atime and ts < ntime:
+        if ts > int(atime) and ts < int(ntime):
             enc_ang = float(acmp)
 
     if enc_ang == -1:
-        print("Image timestamp outside of encoder data range")
+        print("Image timestamp outside of encoder data range (" + data.get('timestamp') + ")")
         return
 
     enc_mark = round(enc_ang * 2) / 2
     enc_tick = enc_ang - enc_mark
 
-    rstr = data.get("name") + " - " + data.get("timestamp") 
+    rstr = data.get("timestamp") 
     rstr += " (" + dev + ")\n"
-    rstr += "encoder angle: " + str(enc_angle) + " deg. ")
+    rstr += "encoder angle: " + str(enc_ang) + " deg. " 
     rstr += "spectreye angle: " + data.get("angle") + " deg.\n"
-    rstr += "encoder mark: " str(enc_mark) + " deg. "
+    rstr += "encoder mark: " + str(enc_mark) + " deg. "
     rstr += "spectreye mark: " + data.get("mark") + " deg.\n"
     rstr += "encoder tick: " + str(enc_tick) + " deg. "
     rstr += "spectreye tick: " + data.get("tick") + "\n\n"
@@ -93,3 +93,4 @@ def cmp_reading(obj):
  
 if __name__ == "__main__":
     build_timeline()
+

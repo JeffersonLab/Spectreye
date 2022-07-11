@@ -83,8 +83,13 @@ class Spectreye(object):
         x_mid = frame.shape[1]/2
         y_mid = frame.shape[0]/2
 
-        img = frame
-        
+        if ipath != None:
+            if "_SHMS" in ipath:
+                dtype=DeviceType.SHMS
+            elif "_HMS" in ipath:
+                dtype=DeviceType.HMS
+
+        img = frame        
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # ltick and rtick determine the bounds of the first suspected middle
@@ -225,20 +230,21 @@ class Spectreye(object):
         else:
             nstr = nstr[:2] + "." + nstr[2:]
 
-        nstr = float(nstr)
-        if nstr < self.HMS_MIN:
-            angle = None
-        else:
-            angle = round(nstr + dec_frac, 2)
-        if dtype == DeviceType.SHMS:
-            if angle > self.SHMS_MAX:
-                angle = angle / 10
-            if angle < self.SHMS_MIN:
-                angle = None
-        elif dtype == DeviceType.HMS:
-            if angle > self.HMS_MAX:
-                angle = angle / 10
+        mark = float(nstr)
+        #if mark < self.HMS_MIN:
+        #    angle = 0.0
+        #else:
+        #
+        #    if dtype == DeviceType.SHMS:
+        #        if mark > self.SHMS_MAX:
+        #            mark = mark / 10
+        #        if mark < self.SHMS_MIN:
+        #            mark = 0.0
+        #    elif dtype == DeviceType.HMS:
+        #        if mark > self.HMS_MAX:
+        #            mark = mark / 10
 
+        angle = round(mark + dec_frac, 2)
         #print(angle) 
 
         if self.debug:
@@ -259,7 +265,7 @@ class Spectreye(object):
 
         timestamp = extract_timestamp(ipath) if ipath != None else None
         
-        obj = self.build_res(angle=angle, tick_angle=dec_frac, reading=nstr, ts=timestamp)
+        obj = self.build_res(angle=angle, dtype=dtype, tick_angle=dec_frac, reading=nstr, ts=timestamp)
         if self.debug:
             print(obj)
         return obj
@@ -522,9 +528,9 @@ class Spectreye(object):
         for ((x, y, ex, ey), c) in boxes:
             cv2.rectangle(img, (x, y), (ex, ey), (0, 255, 0), 2)
 
-        cv2.imshow("tess", img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        #cv2.imshow("tess", img)
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
 
         self.stamp("end ocr_tess")
         return (rects, 1, 1) # resize ratio of 1 for plug-n-play compatibility with ocr_east calls

@@ -4,7 +4,8 @@ import random
 import cv2
 import subprocess
 import json
-from spectreye import Spectreye
+from spectreye import Spectreye, DeviceType
+from timeline import cmp_reading
 
 # helper tests for running Spectreye on different image batches
 
@@ -25,12 +26,14 @@ def gtest(sae):
 # quick gtest checker
 def qtest():
     sae = Spectreye(False)
-    vals = [19.68, 28.51, 19.71, 33.02, 47.61, 20.96, 21.41]
+    vals = [19.68, 20.96, 47.61, 33.02, 28.51, 19.71, 21.41]
     angles = []
     times = []
     for i in range(0, len(vals)):
-        path = "images/test" + str(i+2) + ".jpg"
-        res = json.loads(sae.from_frame(cv2.imread(path), path))
+        path = "images/qtest/" + os.listdir("images/qtest")[i]
+        print(path)
+        res = json.loads(sae.from_frame(cv2.imread(path), ipath=path))
+        print(res)
         angle = float(res.get("angle"))
         angles.append(angle)
         t = res.get("runtime")
@@ -46,17 +49,16 @@ def rtest(sae):
         path = random.choice(os.listdir("images/angle_snaps/"))
         if len(path) > 4 and path[-4:] == ".jpg":
             path = "images/angle_snaps/" + path
-            print("\n" + path)
 
-            datetime = subprocess.getoutput("strings " + path + " | grep \"201\"").splitlines()[0]
-            datetime = datetime.replace(":", "-", 2)
-            print(datetime)
+            if "SHMS" in path:
+                dev = DeviceType.SHMS
+            elif "HMS" in path:
+                dev = DeviceType.HMS
+            else:
+                continue
 
-            line = subprocess.getoutput("strings " + ds + " | grep \"" + datetime + "\"")
-            print(line)
-
-            res = sae.from_frame(cv2.imread(path))
-
+            res = sae.from_frame(cv2.imread(path), dtype=dev, ipath=path)
+            reading = cmp_reading(res)
 
 
 # choose randomly from selected problem images
@@ -72,8 +74,19 @@ def shms_test(sae):
         path = random.choice(os.listdir("images/angle_snaps/"))
         if len(path) > 4 and path[-4:] == ".jpg" and "_SHMS" in path:
             path = "images/angle_snaps/" + path
+            if path == "":
+                continue
+
             print(path)
-            sae.from_frame(cv2.imread(path))
+            if "SHMS" in path:
+                dev = DeviceType.SHMS
+            elif "HMS" in path:
+                dev = DeviceType.HMS
+            else:
+                continue
+
+            res = sae.from_frame(cv2.imread(path), dtype=dev, ipath=path)
+            reading = cmp_reading(res)
 
 # choose randomly from HMS snaps
 def hms_test(sae):
@@ -81,12 +94,23 @@ def hms_test(sae):
         path = random.choice(os.listdir("images/angle_snaps/"))
         if len(path) > 4 and path[-4:] == ".jpg" and "_HMS" in path:
             path = "images/angle_snaps/" + path
+            if path == "":
+                continue
+
             print(path)
-            sae.from_frame(cv2.imread(path))
+            if "SHMS" in path:
+                dev = DeviceType.SHMS
+            elif "HMS" in path:
+                dev = DeviceType.HMS
+            else:
+                continue
+
+            res = sae.from_frame(cv2.imread(path), dtype=dev, ipath=path)
+            reading = cmp_reading(res)
 
 
 if __name__ == "__main__":
-    sae = Spectreye(True)
+    sae = Spectreye(False)
     
     if len(sys.argv) > 1:
         if sys.argv[1] == "g" or sys.argv[1] == "-g":
