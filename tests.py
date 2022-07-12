@@ -11,8 +11,6 @@ from timeline import cmp_reading
 
 ds = "datasets/HallC_SHMS_HMS_2018/HallC_SpectrometerAngles2018.dat"
 
-lowqual = ["COIN_HMS_angle_03322.jpg", "COIN_HMS_angle_03814.jpg", "HMS_angle_01870.jpg"]
-
 # choose randomly from preselected test images
 def gtest(sae):
     images = os.listdir("images/")

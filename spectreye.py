@@ -70,9 +70,9 @@ class Spectreye(object):
         self.stamp("final")
         print("\nruntime stamps\n--------------")
         for i in range(1, len(self.stamps)):
-            delta = self.stamps[i][1] - self.stamps[i-1][1]
+            delta = round(self.stamps[i][1] - self.stamps[i-1][1], 5)
             print(self.stamps[i][0] + " - delta: " + str(delta))
-        total = self.stamps[len(self.stamps)-1][1] - self.stamps[0][1]
+        total = round(self.stamps[len(self.stamps)-1][1] - self.stamps[0][1], 5)
         print("runtime: " + str(total))
         print("--------------\n")
 
@@ -281,7 +281,7 @@ class Spectreye(object):
             cv2.destroyAllWindows()
 
         
-        obj = self.build_res(angle=angle, dtype=dtype, tick_angle=dec_frac, reading=nstr, ts=timestamp)
+        obj = self.build_res(angle=angle, dtype=dtype, tick_angle=dec_frac, reading=float(nstr), ts=timestamp)
         if self.debug:
             print(obj)
         return obj
@@ -290,18 +290,24 @@ class Spectreye(object):
     def build_res(self, name=None, angle=None, tick_angle=None, reading=None, dtype=DeviceType.UNKNOWN, ts=None):
         if angle != None:
             status = RetCode.SUCCESS
+            angle = str(round(angle, 2))
         elif tick_angle != None:
             status = RetCode.NOREAD
         else:
             status = RetCode.FAILURE
 
+        if reading != None:
+            reading = str(round(reading, 2))
+        if tick_angle != None:
+            tick_angle = str(round(tick_angle, 2))
+
         dat = {
             'status': status.name,
             'name': name,
-            'angle': str(angle),
-            'mark': str(reading),
-            'tick': str(tick_angle),
-            'runtime': str(self.stamps[len(self.stamps)-1][1] - self.stamps[0][1]),
+            'angle': angle,
+            'mark': reading,
+            'tick': tick_angle,
+            'runtime': str(round(self.stamps[len(self.stamps)-1][1] - self.stamps[0][1], 4)),
             'device': dtype.name,
             'timestamp': ts
         }
@@ -578,6 +584,8 @@ if __name__ == "__main__":
     sae = Spectreye()
     if len(sys.argv) > 1:
         print(sys.argv[1])
-        sae.from_frame(cv2.imread(sys.argv[1]), ipath=sys.argv[1])
+        res = sae.from_image(sys.argv[1])
     else:
-        sae.from_image("images/qtest/HMS_0.jpg", cmp=19.68) 
+        sae.from_image("images/qtest/HMS_0.jpg", cmp=19.68)
+        
+        

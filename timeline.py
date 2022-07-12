@@ -5,7 +5,7 @@ import shutil
 import ciso8601
 import time
 import json
-from spectreye import DeviceType, RetCode
+from spectreye import DeviceType, RetCode, Spectreye
 # helper script to create timeline csv with each angle change for data comparison
 
 encodings = "datasets/HallC_SHMS_HMS_2018/HallC_SpectrometerAngles2018.dat"
@@ -49,6 +49,9 @@ def build_timeline():
 def cmp_reading(obj):
     data = json.loads(obj)
 
+    if data.get("angle") == None:
+        return
+
     dev = data.get("device")
     if dev == DeviceType.UNKNOWN.name:
         print("Unknown DeviceType")
@@ -58,6 +61,7 @@ def cmp_reading(obj):
     else:
         tlpath = htl
 
+    # convert to unixtime
     words = data.get('timestamp').split()
     stamp = ciso8601.parse_datetime(words[0] + " " + words[1])
     ts = int(time.mktime(stamp.timetuple()))
@@ -77,20 +81,32 @@ def cmp_reading(obj):
         return
 
     enc_mark = round(enc_ang * 2) / 2
-    enc_tick = enc_ang - enc_mark
+    enc_tick = round(enc_ang - enc_mark, 2)
+
+    # estimated angle assuming that encoder drift in < 0.5 degrees (which it should be (-: )
+    if data.get("tick") != None:
+        composite = round(enc_mark + float(data.get("tick")), 2)
+    else:
+        composite = 0.0
 
     rstr = data.get("timestamp") 
     rstr += " (" + dev + ")\n"
     rstr += "encoder angle: " + str(enc_ang) + " deg. " 
-    rstr += "spectreye angle: " + data.get("angle") + " deg.\n"
+    rstr += "spectreye angle: " + str(data.get("angle")) + " deg.\n"
     rstr += "encoder mark: " + str(enc_mark) + " deg. "
-    rstr += "spectreye mark: " + data.get("mark") + " deg.\n"
+    rstr += "spectreye mark: " + str(data.get("mark")) + " deg.\n"
     rstr += "encoder tick: " + str(enc_tick) + " deg. "
-    rstr += "spectreye tick: " + data.get("tick") + "\n\n"
+    rstr += "spectreye tick: " + str(data.get("tick")) + " deg.\n"
+    rstr += "composite guess: " + str(composite) + " deg.\n\n"
 
     print(rstr)
     return rstr
- 
+
 if __name__ == "__main__":
-    build_timeline()
+    if len(sys.argv) > 1:
+        sae = Spectreye(True)
+        res = sae.from_image(sys.argv[1])
+        read = cmp_reading(res)
+    else:
+        build_timeline()
 
