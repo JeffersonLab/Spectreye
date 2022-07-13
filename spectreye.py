@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import math
 import sys
+import os
 import time
 import json
 import subprocess as sp
@@ -280,8 +281,8 @@ class Spectreye(object):
                     break
             cv2.destroyAllWindows()
 
-        
-        obj = self.build_res(angle=angle, dtype=dtype, tick_angle=dec_frac, reading=float(nstr), ts=timestamp)
+        fpath = os.path.abspath(ipath) if ipath != None else ipath
+        obj = self.build_res(angle=angle, name=fpath, tick_angle=dec_frac, reading=float(nstr), dtype=dtype, ts=timestamp)
         if self.debug:
             print(obj)
         return obj
