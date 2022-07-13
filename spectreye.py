@@ -102,7 +102,7 @@ class Spectreye(object):
 
         timestamp = extract_timestamp(ipath) if ipath != None else None
 
-        img = frame        
+        img = frame
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
         # ltick and rtick determine the bounds of the first suspected middle
@@ -133,6 +133,10 @@ class Spectreye(object):
         pass1 = cv2.fastNlMeansDenoising(pass1,None,21,7,21)
         timg = pass1
         self.stamp("main pass end")
+        
+#        cv2.imshow("t", timg)
+#        cv2.waitKey(0)
+#        cv2.destroyAllWindows()
 
 #        self.ocr_tess(frame.copy())
 
@@ -211,6 +215,7 @@ class Spectreye(object):
        
         # isolate text box for additional filtering to improve image for tesseract
         numbox = pass1[boxdata[0]:boxdata[1], boxdata[2]:boxdata[3]]
+
         #numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
        
 
@@ -250,7 +255,7 @@ class Spectreye(object):
             nstr = nstr[:2] + "." + nstr[2:]
 
         mark = float(nstr)
-        if mark < self.HMS_MIN:
+        if mark < self.SHMS_MIN:
             angle = None
         else:
             if dtype == DeviceType.SHMS:
@@ -313,6 +318,23 @@ class Spectreye(object):
             'timestamp': ts
         }
         return json.dumps(dat, indent=4)
+
+    # test filtering based on color mask - messier numbers but consistent filter accuracy
+    def mask_filter(frame):
+        fil = frame.copy()
+        lab = cv2.cvtColor(fil, cv2.COLOR_BGR2LAB)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        lab[:,:,0] = clahe.apply(lab[:,:,0])
+        lab[:,:,0] = clahe.apply(lab[:,:,0])
+        fil = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+        fil = cv2.fastNlMeansDenoising(fil,None,21,7,21)
+
+        mask = cv2.inRange(fil, (0, 0, 0), (180, 180, 250))
+        fil = cv2.bitwise_or(fil,fil, mask=mask)
+        fil = cv2.cvtColor(fil, cv2.COLOR_BGR2GRAY)
+        fil = cv2.threshold(fil, 1, 255, cv2.THRESH_BINARY, 0)[1]
+        return fil
+
 
     # finds starting point for proc_peak based on l/r tick guesses
     def find_mid(self, img, segments, ltick, rtick):
