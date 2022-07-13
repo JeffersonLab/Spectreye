@@ -55,7 +55,7 @@ def singles(debug=False):
 
     for path in images:
         if len(path) > 4 and path[-4:] == ".jpg":
-            path = "images/singles/" + path
+            path = "images/singlems/" + path
             print(path)
             res = sae.from_image(path)
             print(res)
@@ -74,7 +74,6 @@ def singles(debug=False):
     print("noread: " + str(round(len(noreads)/nfiles,2)) + "%")
     print("failure: " + str(round(len(failures)/nfiles,2)) + "%")
     print("\n")
-
 
 
 # choose randomly from all angle snaps

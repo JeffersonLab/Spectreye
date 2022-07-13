@@ -122,23 +122,15 @@ class Spectreye(object):
 
         # main filter pass for both EAST and tesseract. feel free to experiment,
         # but if you change it, keep the dilation and division together
-        self.stamp("main pass begin") 
-        pass1 = img
-        pass1 = cv2.threshold(pass1, 127, 255, cv2.THRESH_BINARY_INV, 0)[1]
-        bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, self.dkernel)
-        pass1 = cv2.divide(pass1, bg, scale=255)
-        pass1 = cv2.GaussianBlur(pass1, (3, 3), 0)
-        pass1 = cv2.morphologyEx(pass1, cv2.MORPH_OPEN, self.okernel)
-        pass1 = cv2.GaussianBlur(pass1, (5, 5), 0)
-        pass1 = cv2.fastNlMeansDenoising(pass1,None,21,7,21)
-        timg = pass1
-        self.stamp("main pass end")
         
 #        cv2.imshow("t", timg)
 #        cv2.waitKey(0)
 #        cv2.destroyAllWindows()
 
 #        self.ocr_tess(frame.copy())
+
+        pass1 = self.thresh_filter(img)
+        timg = pass1
 
         (boxes, rW, rH) = self.ocr_east(timg)
         self.stamp("ocr_east end")
@@ -320,7 +312,7 @@ class Spectreye(object):
         return json.dumps(dat, indent=4)
 
     # test filtering based on color mask - messier numbers but consistent filter accuracy
-    def mask_filter(frame):
+    def mask_filter(self, frame):
         fil = frame.copy()
         lab = cv2.cvtColor(fil, cv2.COLOR_BGR2LAB)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
@@ -335,6 +327,17 @@ class Spectreye(object):
         fil = cv2.threshold(fil, 1, 255, cv2.THRESH_BINARY, 0)[1]
         return fil
 
+    def thresh_filter(self, pass1):
+        self.stamp("main pass begin") 
+        pass1 = cv2.threshold(pass1, 127, 255, cv2.THRESH_BINARY_INV, 0)[1]
+        bg = cv2.morphologyEx(pass1, cv2.MORPH_DILATE, self.dkernel)
+        pass1 = cv2.divide(pass1, bg, scale=255)
+        pass1 = cv2.GaussianBlur(pass1, (3, 3), 0)
+        pass1 = cv2.morphologyEx(pass1, cv2.MORPH_OPEN, self.okernel)
+        pass1 = cv2.GaussianBlur(pass1, (5, 5), 0)
+        pass1 = cv2.fastNlMeansDenoising(pass1,None,21,7,21)
+        self.stamp("main pass end")
+        return pass1
 
     # finds starting point for proc_peak based on l/r tick guesses
     def find_mid(self, img, segments, ltick, rtick):
