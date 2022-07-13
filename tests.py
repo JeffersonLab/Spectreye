@@ -4,7 +4,7 @@ import random
 import cv2
 import subprocess
 import json
-from spectreye import Spectreye, DeviceType
+from spectreye import Spectreye, DeviceType, RetCode
 from timeline import cmp_reading
 
 # helper tests for running Spectreye on different image batches
@@ -42,9 +42,17 @@ def qtest():
         print(str(vals[i]) + " " + str(angles[i]) + " " + str(times[i])[0:5] + "s")
 
 def singles(debug=False):
+
+    successes = []
+    noreads   = []
+    failures  = []
+
     sae = Spectreye(debug)
     images = os.listdir("images/singles/")
     random.shuffle(images)
+
+    nfiles = len(images)
+
     for path in images:
         if len(path) > 4 and path[-4:] == ".jpg":
             path = "images/singles/" + path
@@ -52,6 +60,22 @@ def singles(debug=False):
             res = sae.from_image(path)
             print(res)
             reading = cmp_reading(res)
+            vals = json.loads(res)
+
+            if vals.get("status") == RetCode.SUCCESS.name:
+                successes.append(vals)
+            if vals.get("status") == RetCode.NOREAD.name:
+                noreads.append(vals)
+            if vals.get("status") == RetCode.FAILURE.name:
+                failures.append(vals)
+
+    print("\n\nSINGLES TEST")
+    print("success: " + str(round(len(successes)/nfiles,2)) + "%")
+    print("noread: " + str(round(len(noreads)/nfiles,2)) + "%")
+    print("failure: " + str(round(len(failures)/nfiles,2)) + "%")
+    print("\n")
+
+
 
 # choose randomly from all angle snaps
 def rtest(sae):

@@ -49,7 +49,7 @@ def build_timeline():
 def cmp_reading(obj):
     data = json.loads(obj)
 
-    if data.get("angle") == None:
+    if data.get("status") == RetCode.FAILURE.name:
         return
 
     dev = data.get("device")
