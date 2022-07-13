@@ -139,6 +139,12 @@ class Spectreye(object):
             (boxes, rW, rH) = self.ocr_tess(timg)
 
         if len(boxes) == 0:
+            timg = self.mask_filter(frame, True)
+            (boxes, rW, rH) = self.ocr_east(timg)
+            if len(boxes) == 0:
+                (boxes, rW, rH) = self.ocr_tess(timg)
+
+        if len(boxes) == 0:
             if self.debug:
                 rawnum = pytesseract.image_to_string(timg, lang="eng", config="--psm 6")
                 print(rawnum)
@@ -230,10 +236,6 @@ class Spectreye(object):
         rawnum = pytesseract.image_to_string(numbox, lang="eng", config="--psm 6")
         self.stamp("tess end")
 
-        # puts together the final angle. this won't work for angles > 99.5,
-        # as it assumes punctuation. i haven't recieved any example images
-        # greater than that though, so i don't know if the spectrometer
-        # even rotates that far
         nstr = ""
         #print(rawnum)
         for n in rawnum:
@@ -312,7 +314,7 @@ class Spectreye(object):
         return json.dumps(dat, indent=4)
 
     # test filtering based on color mask - messier numbers but consistent filter accuracy
-    def mask_filter(self, frame):
+    def mask_filter(self, frame, debug=False):
         fil = frame.copy()
         lab = cv2.cvtColor(fil, cv2.COLOR_BGR2LAB)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
@@ -321,10 +323,19 @@ class Spectreye(object):
         fil = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
         fil = cv2.fastNlMeansDenoising(fil,None,21,7,21)
 
-        mask = cv2.inRange(fil, (0, 0, 0), (180, 180, 250))
+        mask = cv2.inRange(fil, (0, 0, 0), (190, 190, 250))
         fil = cv2.bitwise_or(fil,fil, mask=mask)
         fil = cv2.cvtColor(fil, cv2.COLOR_BGR2GRAY)
         fil = cv2.threshold(fil, 1, 255, cv2.THRESH_BINARY, 0)[1]
+
+        fil = cv2.morphologyEx(fil, cv2.MORPH_OPEN, self.okernel)
+        fil = cv2.GaussianBlur(fil, (5, 5), 5)
+
+        if debug:
+            cv2.imshow("f", fil)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+
         return fil
 
     def thresh_filter(self, pass1):

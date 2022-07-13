@@ -55,7 +55,7 @@ def singles(debug=False):
 
     for path in images:
         if len(path) > 4 and path[-4:] == ".jpg":
-            path = "images/singlems/" + path
+            path = "images/singles/" + path
             print(path)
             res = sae.from_image(path)
             print(res)
