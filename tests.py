@@ -41,6 +41,18 @@ def qtest():
     for i in range(0, len(angles)):
         print(str(vals[i]) + " " + str(angles[i]) + " " + str(times[i])[0:5] + "s")
 
+def singles(debug=False):
+    sae = Spectreye(debug)
+    images = os.listdir("images/singles/")
+    random.shuffle(images)
+    for path in images:
+        if len(path) > 4 and path[-4:] == ".jpg":
+            path = "images/singles/" + path
+            print(path)
+            res = sae.from_image(path)
+            print(res)
+            reading = cmp_reading(res)
+
 # choose randomly from all angle snaps
 def rtest(sae):
     while True:
@@ -94,6 +106,8 @@ if __name__ == "__main__":
             gtest(sae)
         elif sys.argv[1] == "q" or sys.argv[1] == "-q":
             qtest()
+        elif sys.argv[1] == "s" or sys.argv[1] == "-s":
+            singles()
         elif sys.argv[1] == "r" or sys.argv[1] == "-r":
             rtest(sae)
         elif sys.argv[1] == "p" or sys.argv[1] == "-p":
