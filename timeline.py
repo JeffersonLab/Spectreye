@@ -58,8 +58,10 @@ def cmp_reading(obj):
         return
     elif dev == DeviceType.SHMS.name:
         tlpath = stl
+        tR = -1
     else:
         tlpath = htl
+        tR = 1
 
     # convert to unixtime
     words = data.get('timestamp').split()
@@ -85,7 +87,7 @@ def cmp_reading(obj):
 
     # estimated angle assuming that encoder drift in < 0.5 degrees (which it should be (-: )
     if data.get("tick") != None:
-        composite = round(enc_mark + float(data.get("tick")), 2)
+        composite = round(enc_mark + (tR * float(data.get("tick"))), 2)
     else:
         composite = 0.0
 

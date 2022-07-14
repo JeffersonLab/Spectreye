@@ -1,0 +1,69 @@
+images/singles/COIN_SHMS_angle_03708.jpg pefect
+images/singles/COIN_SHMS_angle_03656.jpg perfect
+images/singles/SHMS_angle_02107.jpg good tick, good box, bad numbox filter
+images/singles/COIN_HMS_angle_03180.jpg good read, tick off wrong box (tess ocr)
+images/singles/SHMS_angle_02232.jpg perfect
+images/singles/COIN_HMS_angle_02023.jpg tess ocr, tick off wrong box
+images/singles/COIN_SHMS_angle_03822.jpg good tick but only reads one of two numbers in mark
+images/singles/HMS_2.jpg perfect
+images/singles/HMS_angle_02111.jpg bad ocr box
+images/singles/COIN_HMS_angle_03392.jpg bad numbox read
+images/singles/SHMS_1.jpg perfect
+images/singles/COIN_SHMS_angle_03534.jpg bad mid, bad bounding box
+images/singles/COIN_HMS_angle_02180.jpg fails to read numbox
+images/singles/HMS_angle_01266.jpg good mid, wrong bounding box
+images/singles/COIN_HMS_angle_03171.jpg fails to read numbox
+images/singles/COIN_SHMS_angle_03671.jpg wrong bounding box
+images/singles/COIN_SHMS_angle_03671.jpg bad numbox filter
+images/singles/COIN_SHMS_angle_03380.jpg bad midpoint
+images/singles/HMS_1.jpg bad midpoint
+images/singles/SHMS_angle_02962.jpg bad midpoint
+images/singles/SHMS_angle_03012.jpg perfect
+images/singles/HMS_3.jpg perfect
+images/singles/SHMS_angle_01793.jpg wrong bounding box (tess ocr) 
+images/singles/HMS_angle_01645.jpg detects noise as large bounding box (east)
+images/singles/COIN_SHMS_angle_03479.jpg perfect
+images/singles/COIN_SHMS_angle_02279.jpg perfect
+images/singles/COIN_HMS_angle_02446.jpg mad midpoint and failed numbox read
+images/singles/COIN_SHMS_angle_03963.jpg tess ocr chose wrong bounding box
+images/singles/COIN_SHMS_angle_03932.jpg failed numbox read
+images/singles/COIN_HMS_angle_04335.jpg perfect
+images/singles/COIN_HMS_angle_03306.jpg failed to find any number
+images/singles/COIN_SHMS_angle_03379.jpg bad numbox filter
+images/singles/COIN_SHMS_angle_03425.jpg tess ocr bounding box too large
+images/singles/COIN_SHMS_angle_02183.jpg tess ocr wrong bounding box
+images/singles/SHMS_angle_03233.jpg tess ocr wrong bounding box
+images/singles/COIN_SHMS_angle_03342.jpg EAST ocr wrong bounding box
+images/singles/COIN_HMS_angle_02293.jpg perfect
+images/singles/COIN_HMS_angle_03264.jpg wrong bounding box
+images/singles/HMS_angle_01537.jpg perfect
+images/singles/HMS_angle_03454.jpg tess ocr bounding box too large
+images/singles/HMS_angle_01512.jpg bad midpoint
+images/singles/COIN_SHMS_angle_03374.jpg tess ocr wrong bounding box
+images/singles/COIN_SHMS_angle_03374.jpg tess ocr wrong bounding box
+images/singles/HMS_angle_01511.jpg perfect
+images/singles/COIN_SHMS_angle_03672.jpg failed numbox read
+images/singles/COIN_HMS_angle_02277.jpg tss ocr wrong bounding box
+images/singles/COIN_HMS_angle_02277.jpg perfect
+images/singles/COIN_SHMS_angle_03171.jpg bad mid, failed numbox read
+images/singles/COIN_SHMS_angle_03171.jpg perfect
+images/singles/SHMS_angle_01640.jpg perfect
+images/singles/SHMS_angle_01640.jpg failed numbox read
+images/singles/COIN_HMS_angle_03349.jpg bad midoint
+images/singles/COIN_SHMS_angle_02116.jpg tess ocr wrong midpoint
+images/singles/HMS_angle_01514.jpg bad midpoint
+images/singles/COIN_SHMS_angle_03395.jpg perfect
+images/singles/HMS_angle_01473.jpg east wrong bounding box
+images/singles/SHMS_0.jpg perfect
+images/singles/SHMS_2.jpg perfect
+images/singles/COIN_SHMS_angle_03635.jpg tess bounding box too large
+images/singles/COIN_SHMS_angle_03748.jpg perfect
+images/singles/COIN_HMS_angle_02159.jpg bad numbox read
+images/singles/COIN_HMS_angle_03271.jpg bad numbox read
+images/singles/COIN_SHMS_angle_03533.jpg bad numbox read
+images/singles/HMS_angle_01490.jpg tess ocr wrong bounding box, failed numbox read
+images/singles/HMS_angle_02063.jpg bad numbox read
+images/singles/COIN_SHMS_angle_03516.jpg wrong midpoint
+images/singles/COIN_SHMS_angle_03394.jpg perfect
+images/singles/COIN_SHMS_angle_03934.jpg perfect
+
