@@ -139,7 +139,7 @@ class Spectreye(object):
             (boxes, rW, rH) = self.ocr_tess(timg)
 
         if len(boxes) == 0:
-            timg = self.mask_filter(frame, True)
+            timg = self.mask_filter(frame, False)
             (boxes, rW, rH) = self.ocr_east(timg)
             if len(boxes) == 0:
                 (boxes, rW, rH) = self.ocr_tess(timg)
@@ -248,11 +248,13 @@ class Spectreye(object):
         else:
             nstr = nstr[:2] + "." + nstr[2:]
 
+        tickR = 1 #SHMS ticks are inverse of HMS
         mark = float(nstr)
         if mark < self.SHMS_MIN:
             angle = None
         else:
             if dtype == DeviceType.SHMS:
+                tickR = -1
                 if mark > self.SHMS_MAX:
                     mark = mark / 10
                 if mark < self.SHMS_MIN:
@@ -260,7 +262,8 @@ class Spectreye(object):
             elif dtype == DeviceType.HMS:
                 if mark > self.HMS_MAX:
                     mark = mark / 10
-            angle = round(mark + dec_frac, 2)
+            
+            angle = round(mark + (tickR * dec_frac), 2)
 
         #print(angle) 
 

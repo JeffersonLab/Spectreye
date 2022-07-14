@@ -24,7 +24,7 @@ def gtest(sae):
 # quick gtest checker
 def qtest():
     sae = Spectreye(False)
-    vals = [19.68, 20.96, 47.61, 33.02, 28.51, 19.71, 21.41]
+    vals = [19.68, 21.04, 47.61, 32.98, 28.51, 19.71, 21.59]
     angles = []
     times = []
     for i in range(0, len(vals)):
