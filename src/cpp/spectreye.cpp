@@ -4,6 +4,7 @@
 
 #include "spectreye.h"
 
+
 Spectreye::Spectreye(int debug) {
 	this->dkernel = cv::getStructuringElement(cv::MORPH_DILATE, cv::Size(4,4));
 	this->okernel = cv::getStructuringElement(cv::MORPH_OPEN, cv::Size(1,1));
