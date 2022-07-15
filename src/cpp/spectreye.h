@@ -12,16 +12,16 @@ const double SHMS_MAX = 35.0;
 
 enum RetCode 
 {
-	FAILURE = -1,
-	SUCCESS =  0,
-	NOREAD  =  1
+	RC_FAILURE = -1,
+	RC_SUCCESS =  0,
+	RC_NOREAD  =  1
 };
 
 enum DeviceType 
 {
-	UNKNOWN = -1,
-	HMS     =  0,
-	SHMS    =  1
+	DT_UNKNOWN = -1,
+	DT_HMS     =  0,
+	DT_SHMS    =  1
 };
 
 
@@ -44,23 +44,19 @@ private:
 	cv::Mat okernel, dkernel, ckernel;
 	cv::dnn::Net net;
 	cv::Ptr<cv::LineSegmentDetector> lsd;
-
-	std::string BuildRes(
-		std::string name, std::optional<double> angle, std::optional<double>tick_angle, 
-		std::string reading, DeviceType dtype
-	);
+	cv::Ptr<cv::CLAHE> clahe;
 
 	cv::Mat MaskFilter(cv::Mat frame);
 	cv::Mat ThreshFilter(cv::Mat frame);
 	std::vector<BoundingBox>OcrEast();
 	std::vector<BoundingBox>OcrTess();
 	int FindTickCenter(cv::Mat img, int ytest, int xtest, int delta=0);
-	std::string FromFrame(cv::Mat frame, DeviceType dtype, std::string ipath);
+	std::string FromFrame(cv::Mat frame, DeviceType dtype, std::string ipath, double enc_angle);
 
 public:
 	Spectreye(int debug=false);
 	std::string GetAngleHMS(std::string path, double encoder_angle=0.0);
 	std::string GetAngleSHMS(std::string path, double encoder_angle=0.0);
-	static std::string ExtractTimestamp(std::string path);
+	std::string ExtractTimestamp(std::string path);
 
 };
