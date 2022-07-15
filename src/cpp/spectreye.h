@@ -48,7 +48,8 @@ private:
 	std::string BuildRes(
 		std::string name, std::optional<double> angle, std::optional<double>tick_angle, 
 		std::string reading, DeviceType dtype
-	);	
+	);
+
 	cv::Mat MaskFilter(cv::Mat frame);
 	cv::Mat ThreshFilter(cv::Mat frame);
 	std::vector<BoundingBox>OcrEast();
@@ -58,8 +59,8 @@ private:
 
 public:
 	Spectreye(int debug=false);
-	std::string GetHMSAngle(std::string path, double encoder_angle=0.0);
-	std::string GetSHMSAngle(std::string path, double encoder_angle=0.0);
+	std::string GetAngleHMS(std::string path, double encoder_angle=0.0);
+	std::string GetAngleSHMS(std::string path, double encoder_angle=0.0);
 	static std::string ExtractTimestamp(std::string path);
 
 };
