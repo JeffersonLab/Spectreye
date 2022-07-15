@@ -24,11 +24,6 @@ enum DeviceType
 	DT_SHMS    =  1
 };
 
-
-struct BoundingBox {
-	double x1, y1, x2, y2;
-};
-
 class Spectreye 
 {
 private:
@@ -36,7 +31,7 @@ private:
 	int font = cv::FONT_HERSHEY_SIMPLEX;
 	int npad = 100;
 	
-	std::string layer_names[2] = {
+	std::vector<std::string> layer_names = {
 		"feature_fusion/Conv_7/Sigmoid",
 		"feature_fusion/concat_3"
 	};
@@ -48,8 +43,8 @@ private:
 
 	cv::Mat MaskFilter(cv::Mat frame);
 	cv::Mat ThreshFilter(cv::Mat frame);
-	std::vector<BoundingBox>OcrEast();
-	std::vector<BoundingBox>OcrTess();
+	std::vector<cv::Rect>OcrEast(cv::Mat img);
+	std::vector<cv::Rect>OcrTess(cv::Mat img);
 	int FindTickCenter(cv::Mat img, int ytest, int xtest, int delta=0);
 	std::string FromFrame(cv::Mat frame, DeviceType dtype, std::string ipath, double enc_angle);
 

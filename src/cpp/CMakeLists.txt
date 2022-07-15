@@ -6,3 +6,13 @@ include_directories( ${OpenCV_INCLUDE_DIRS} )
 add_executable( spectreye spectreye.cpp )
 target_include_directories( spectreye PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" )
 target_link_libraries( spectreye ${OpenCV_LIBS} tesseract )
+
+SET ( CMAKE_EXPORT_COMPILE_COMMANDS ON )
+IF( EXISTS "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json" )
+  EXECUTE_PROCESS( COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+    ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
+  )
+ENDIF()
+
+

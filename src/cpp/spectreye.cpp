@@ -71,6 +71,86 @@ cv::Mat Spectreye::MaskFilter(cv::Mat frame) {
 	return img;
 }
 
+std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat img) 
+{
+	std::vector<cv::Mat> outs;
+	
+	cv::Mat timg = img.clone();
+	int H = timg.size().height;
+	int W = timg.size().width;
+
+	int origH = H;
+	int newW, newH = 320;
+	double rW = (double) W / (double) newW;
+	double rH = (double) H / (double) newH;
+	
+	cv::resize(timg, timg, cv::Size(newW, newH));
+	H = timg.size().height;
+	W = timg.size().width;
+
+	cv::Mat blob = cv::dnn::blobFromImage(
+			timg, 1.0, cv::Size(H, W), cv::Scalar(123.68, 116.78, 103.94), true, false); 
+
+	this->net.setInput(blob);
+	this->net.forward(outs, this->layer_names);
+
+	cv::Mat scores   = outs[0];
+	cv::Mat geometry = outs[1];
+
+	std::vector<cv::Rect> rects;
+	std::vector<float> confidences;
+
+	int nrows = scores.size[2];
+	int ncols = scores.size[3];
+
+	for(int y=0; y<nrows; ++y) {
+		const float* scores_data = scores.ptr<float>(0, 0, y);
+		const float* xdata0 = geometry.ptr<float>(0, 0, y);
+		const float* xdata1 = geometry.ptr<float>(0, 1, y);
+		const float* xdata2 = geometry.ptr<float>(0, 2, y);
+		const float* xdata3 = geometry.ptr<float>(0, 3, y);
+		const float* angles = geometry.ptr<float>(0, 4, y);
+
+		for(int x=0; x<ncols; ++x) {
+			if (scores_data[x] < 0.5) {
+				continue;
+			}
+			float offsetX = x * 4.0;
+			float offsetY = y * 4.0;
+			float angle = angles[x];
+			float cos = std::cos(angle);
+			float sin = std::sin(angle);
+			float h = xdata0[x] + xdata2[x];
+			float w = xdata1[x] + xdata3[x];
+
+			int endX = (int)(offsetX + (cos * xdata1[x]) + (sin * xdata2[x]));
+			int endY = (int)(offsetY - (sin * xdata1[x]) + (cos * xdata2[x]));
+			int startX = (int)(endX - w);
+			int startY = (int)(endY - h);
+			
+			if (endY*rH < origH) {
+				rects.push_back(cv::Rect(startX*rW, startY*rH, endX*rW, endY*rH));
+				confidences.push_back(scores_data[x]);
+			}
+		}
+	}
+
+	std::vector<int> indices;
+	cv::dnn::NMSBoxes(rects, confidences, 0.5, 0.5, indices);
+
+	return rects;
+}
+/*
+std::vector<cv::Rect> Spectreye::OcrTess(cv::Mat img) 
+{
+	
+}
+
+int Spectreye::FindTickCenter(cv::Mat img, int ytest, int xtest, int delta) 
+{
+
+}
+*/
 std::string Spectreye::FromFrame(
 		cv::Mat frame, DeviceType dtype, std::string ipath, double enc_angle)
 {
