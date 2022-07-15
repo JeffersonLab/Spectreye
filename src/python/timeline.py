@@ -8,9 +8,9 @@ import json
 from spectreye import DeviceType, RetCode, Spectreye
 # helper script to create timeline csv with each angle change for data comparison
 
-encodings = "datasets/HallC_SHMS_HMS_2018/HallC_SpectrometerAngles2018.dat"
-stl = "datasets/angle_marks/shms/timeline.csv"
-htl = "datasets/angle_marks/hms/timeline.csv"
+encodings = "../../datasets/HallC_SHMS_HMS_2018/HallC_SpectrometerAngles2018.dat"
+stl = "../../datasets/angle_marks/shms/timeline.csv"
+htl = "../../datasets/angle_marks/hms/timeline.csv"
 
 def build_timeline():
     lines = open(encodings, "r").read().splitlines()[1:]

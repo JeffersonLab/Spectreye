@@ -57,7 +57,7 @@ class Spectreye(object):
         self.okernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1,1))
         self.ckernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2,4))
 
-        self.net = cv2.dnn.readNet("east.pb")
+        self.net = cv2.dnn.readNet("../east.pb")
         self.lsd = cv2.createLineSegmentDetector(0)
         self.debug = debug
 
@@ -226,10 +226,8 @@ class Spectreye(object):
         img = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
         numbox = img
 
+#        numbox = cv2.threshold(numbox, 230, 255, cv2.THRESH_BINARY, 0)[1] 
 #        numbox = cv2.GaussianBlur(numbox, (3, 3), 5)
-#        nmbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
-#        numbox = cv2.morphologyEx(numbox, cv2.MORPH_OPEN, self.okernel)
-#        numbox = cv2.threshold(numbox, 240, 255, cv2.THRESH_BINARY, 0)[1] 
 #        numbox = cv2.fastNlMeansDenoising(numbox,None,21,7,21)
 
         self.stamp("tess begin")
@@ -318,6 +316,7 @@ class Spectreye(object):
 
     # test filtering based on color mask - messier numbers but consistent filter accuracy
     def mask_filter(self, frame, debug=False):
+        print("mask filter")
         fil = frame.copy()
         lab = cv2.cvtColor(fil, cv2.COLOR_BGR2LAB)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
@@ -626,6 +625,6 @@ if __name__ == "__main__":
         print(sys.argv[1])
         res = sae.from_image(sys.argv[1])
     else:
-        sae.from_image("images/qtest/HMS_0.jpg", cmp=19.68)
+        sae.from_image("../../images/qtest/HMS_0.jpg", cmp=19.68)
         
         

@@ -13,11 +13,11 @@ ds = "datasets/HallC_SHMS_HMS_2018/HallC_SpectrometerAngles2018.dat"
 
 # choose randomly from preselected test images
 def gtest(sae):
-    images = os.listdir("images/")
+    images = os.listdir("../../images/")
     random.shuffle(images)
     for path in images:
         if len(path) > 4 and path[-4:] == ".jpg":
-            path = "images/" + path
+            path = "../../images/" + path
             print(path)
             sae.from_frame(cv2.imread(path))
 
@@ -28,7 +28,7 @@ def qtest():
     angles = []
     times = []
     for i in range(0, len(vals)):
-        path = "images/qtest/" + os.listdir("images/qtest")[i]
+        path = "../../images/qtest/" + os.listdir("../../images/qtest")[i]
         print(path)
         res = json.loads(sae.from_image(path))
         print(res)
@@ -48,14 +48,14 @@ def singles(debug=False):
     failures  = []
 
     sae = Spectreye(debug)
-    images = os.listdir("images/singles/")
+    images = os.listdir("../../images/singles/")
     random.shuffle(images)
 
     nfiles = len(images)
 
     for path in images:
         if len(path) > 4 and path[-4:] == ".jpg":
-            path = "images/singles/" + path
+            path = "../../images/singles/" + path
             print(path)
             res = sae.from_image(path)
             print(res)
@@ -79,9 +79,9 @@ def singles(debug=False):
 # choose randomly from all angle snaps
 def rtest(sae):
     while True:
-        path = random.choice(os.listdir("images/angle_snaps/"))
+        path = random.choice(os.listdir("../../images/angle_snaps/"))
         if len(path) > 4 and path[-4:] == ".jpg":
-            path = "images/angle_snaps/" + path
+            path = "../../images/angle_snaps/" + path
             print(path)
             res = sae.from_image(path)
             reading = cmp_reading(res)
@@ -90,16 +90,16 @@ def rtest(sae):
 # choose randomly from selected problem images
 def prob_test(sae):
     while True:
-        path = "images/angle_snaps/" + random.choice(lowqual)
+        path = "../../images/angle_snaps/" + random.choice(lowqual)
         print(path)
         sae.from_frame(cv2.imread(path))
 
 # choose randomly from SHMS snaps
 def shms_test(sae):
     while True:
-        path = random.choice(os.listdir("images/angle_snaps/"))
+        path = random.choice(os.listdir("../../images/angle_snaps/"))
         if len(path) > 4 and path[-4:] == ".jpg" and "_SHMS" in path:
-            path = "images/angle_snaps/" + path
+            path = "../../images/angle_snaps/" + path
             print(path)
             if path == "":
                 continue
@@ -110,9 +110,9 @@ def shms_test(sae):
 # choose randomly from HMS snaps
 def hms_test(sae):
     while True:
-        path = random.choice(os.listdir("images/angle_snaps/"))
+        path = random.choice(os.listdir("../../images/angle_snaps/"))
         if len(path) > 4 and path[-4:] == ".jpg" and "_HMS" in path:
-            path = "images/angle_snaps/" + path
+            path = "../../images/angle_snaps/" + path
             print(path)
             if path == "":
                 continue
