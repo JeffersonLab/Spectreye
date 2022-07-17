@@ -190,7 +190,22 @@ std::vector<cv::Rect> Spectreye::OcrTess(cv::Mat frame)
 
 int Spectreye::FindTickCenter(cv::Mat img, int ytest, int xtest, int delta) 
 {
-	return 0;
+	int optl = 0, optr = 0;
+
+	for(int x=xtest-1; x>=1; x--) {
+		if(img.at<unsigned char>(ytest, x) > img.at<unsigned char>(ytest, x-1)+delta) {
+			optl = x;
+			break;
+		}
+	}
+	for(int x=xtest; x<img.size().width; x++) {
+		if(img.at<unsigned char>(ytest, x) > img.at<unsigned char>(ytest, x+1)+delta) {
+			optr = x;
+			break;
+		}
+	}
+	
+	return (std::abs(xtest-optl) < std::abs(xtest-optr)) ? optl : optr;	
 }
 
 std::string Spectreye::FromFrame(
