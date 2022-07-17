@@ -298,8 +298,9 @@ std::string Spectreye::FromFrame(
 	for(const auto& d : diffs) 
 		freq_count[d]++;
 
+	using ptype = decltype(freq_count)::value_type; // c++11 got me feeling funny
 	auto mfreq = std::max_element(freq_count.begin(), freq_count.end(),
-			[] (const auto &x, const auto &y) {return x.second < y.second;});
+			[] (const ptype &x, const ptype &y) {return x.second < y.second;});
 	pixel_ratio = std::abs(mfreq->first);
 
 
@@ -343,11 +344,17 @@ std::string Spectreye::FromFrame(
 	auto iter = std::find(dists.begin(), dists.end(), dsorted[0]);
 	true_mid = locs[iter - dists.begin()];
 
+	cv::Mat timg = this->ThreshFilter(img);
+	std::vector<cv::Rect> boxes = this->OcrEast(timg);
+
 	return "";	
 }
 
 int main(int argc, char** argv) {
 	Spectreye* s = new Spectreye(true);
+
+	std::string res = s->GetAngleHMS("../../images/qtest/HMS_0.jpg");
+
 	return 0;
 }
 
