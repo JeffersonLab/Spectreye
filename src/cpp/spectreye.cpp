@@ -248,6 +248,38 @@ std::string Spectreye::FromFrame(
 		}
 	}
 
+	int true_mid, ysplit;
+	float pixel_ratio;
+
+	// equiv of find_mid from spectreye.py	
+	cv::GaussianBlur(img, pass1, cv::Size(5, 5), 0);
+	cv::fastNlMeansDenoising(pass1, pass1, 21, 7, 21);
+
+	cv::Vec4f mid = segments[0];
+	std::vector<cv::Vec4f> opts;
+	for(auto l : segments) {
+		if(ltick[1] >= l[1] and ltick[3] <= l[3]) {
+			opts.push_back(l);
+			if(l[3] - l[1] > mid[3] - mid[1]) 
+				mid = l;
+		}
+	}
+
+	std::vector<cv::Vec4f> cull;
+	for(auto l : opts) {
+		if(!(l[1] < ltick[1]-(ltick[3]-ltick[1]))) {
+			cull.push_back(l);
+		} else if(!(l[3] > ltick[3]+(ltick[3]-ltick[1]))) {
+			cull.push_back(l);
+		}
+	}
+
+	for(auto l : cull) {
+		if(std::abs(x_mid - l[0]) < std::abs(x_mid - mid[0]))
+			mid = l;
+	}
+
+	
 
 	return "";	
 }
