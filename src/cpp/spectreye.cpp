@@ -280,6 +280,8 @@ std::string Spectreye::FromFrame(
 	}
 
 	// equiv of proc_peak() from spectreye.py
+	int y = mid[1] + (mid[3]-mid[1])/2;
+
 	std::vector<int> ticks;
 	for(int x=0; x<img.size().width; x++) {
 		if(img.at<unsigned char>(y, x) > img.at<unsigned char>(y, x+1)+1 &&
@@ -294,13 +296,52 @@ std::string Spectreye::FromFrame(
 	
 	std::unordered_map<int, int> freq_count;
 	for(const auto& d : diffs) 
-		freq_count[item]++;
+		freq_count[d]++;
 
 	auto mfreq = std::max_element(freq_count.begin(), freq_count.end(),
 			[] (const auto &x, const auto &y) {return x.second < y.second;});
-	pixel_ratio = mfreq->first;
+	pixel_ratio = std::abs(mfreq->first);
 
+
+	std::vector<int> iheights;
+	int uy, dy;
+	for(const auto& l : ticks) {
+		uy = y;
+		while(img.at<unsigned char>(uy, l) < img.at<unsigned char>(uy-1,l)+5)
+			uy--;
+		dy = y;
+		ysplit = uy;
+		while(img.at<unsigned char>(dy, l) < img.at<unsigned char>(dy+1,l)+5)
+			dy++;
+		iheights.push_back(dy-uy);
+	}
+
+	std::vector<int> opti, heights, locs, dists;
 	
+	std::priority_queue<std::pair<int, int>> q;
+	for(int i=0; i<iheights.size(); ++i) {
+		q.push(std::pair<int, int>(heights[i], i));
+	}
+	for(int i=0; i<5; ++i) {
+		int ki = q.top().second;
+		opti.push_back(ki);
+		q.pop();
+	}
+
+	for(const auto& i : opti) {
+		heights.push_back(iheights[i]);
+		locs.push_back(ticks[i]);
+	}
+
+	for(const auto& l : locs)
+		dists.push_back(std::abs(x_mid - l));
+
+	std::vector<int> dsorted = dists;
+	std::sort(dsorted.begin(), dsorted.end());
+
+	// this stuff is probably broken
+	auto iter = std::find(dists.begin(), dists.end(), dsorted[0]);
+	true_mid = locs[iter - dists.begin()];
 
 	return "";	
 }
