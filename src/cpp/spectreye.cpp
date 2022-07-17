@@ -211,6 +211,44 @@ int Spectreye::FindTickCenter(cv::Mat img, int ytest, int xtest, int delta)
 std::string Spectreye::FromFrame(
 		cv::Mat frame, DeviceType dtype, std::string ipath, double enc_angle)
 {
+
+	int x_mid = frame.size().width/2;
+	int y_mid = frame.size().height/2;
+	std::string timestamp = this->ExtractTimestamp(ipath);
+
+	cv::Mat img;
+	cv::cvtColor(frame, img, cv::COLOR_BGR2GRAY);
+
+	cv::Vec4f ltick, rtick;
+	std::vector<cv::Vec4f> segments;
+
+	// equiv of get_ticks() from spectreye.py
+	cv::Mat pass1;
+	cv::fastNlMeansDenoising(img, pass1, 21, 7, 21);
+	cv::GaussianBlur(pass1, pass1, cv::Size(5, 5), 0);
+	
+	std::vector<cv::Vec4f> lines;
+	this->lsd->detect(pass1, lines);
+	ltick = lines[0];
+	rtick = lines[1];
+
+	for(int i=0; i<lines.size(); i++) {
+		cv::Vec4f l = lines[i];
+
+		if(std::abs(l[0] - l[2]) < std::abs(l[1] - l[3])) {
+			if(l[1] > y_mid - (0.1 * img.size().height) &&
+					l[3] < y_mid + (0.1 * img.size().height)) {
+				segments.push_back(l);
+
+				if(l[0] < x_mid && std::abs(x_mid - l[0]) < std::abs(x_mid - ltick[0])) 
+					ltick = l;	
+				if(l[0] > x_mid && std::abs(x_mid - l[0]) < std::abs(x_mid - rtick[0])) 
+					rtick = l;
+			}
+		}
+	}
+
+
 	return "";	
 }
 
