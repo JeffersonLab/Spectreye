@@ -441,10 +441,10 @@ class Spectreye(object):
         for i in range(0, len(heights)):
             fin.append([locs[i], heights[i], dists[i]])
 
-        # takes 3 ticks closest to image mid and then sorts by height
+        # takes 2 ticks closest to image mid and then sorts by height
         res = sorted(fin, key=lambda x: abs(x_mid - x[0]))[0:2]
-        cull = sorted(res, key=lambda x: x[0])
-
+#        cull = sorted(res, key=lambda x: x[0])
+        cull = [res[0] if res[0][0] < res[1][0] else res[1]]
         #tallest of 3 final options is the best guess for the true middle of the image
         pred_mid = cull[0][0]
 
@@ -607,7 +607,7 @@ class Spectreye(object):
             if img[ytest][x] > img[ytest][x+1]+delta:
                 optr = x
                 break
-        midx = optl if (abs(xtest-optl) > abs(xtest-optr)) else optr
+        midx = optl if (abs(xtest-optl) < abs(xtest-optr)) else optr
 
         return midx
 
