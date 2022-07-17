@@ -1,6 +1,7 @@
 #include <opencv2/opencv.hpp>
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
+#include <cstdio>
 
 #include "spectreye.h"
 
@@ -8,7 +9,7 @@
 Spectreye::Spectreye(int debug) 
 {
 	this->dkernel = cv::getStructuringElement(cv::MORPH_DILATE, cv::Size(4,4));
-	this->okernel = cv::getStructuringElement(cv::MORPH_OPEN, cv::Size(1,1));
+	this->okernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(1,1));
 	this->ckernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2,4));
 
 	this->net = cv::dnn::readNet("../east.pb");
@@ -39,13 +40,15 @@ std::string Spectreye::ExtractTimestamp(std::string path)
 }
 
 cv::Mat Spectreye::ThreshFilter(cv::Mat frame) {
-	cv::Mat img;
+	cv::Mat img, bg;
 	cv::threshold(frame, img, 127, 255, cv::THRESH_BINARY_INV);
-	cv::morphologyEx(img, img, cv::MORPH_DILATE, this->dkernel);
+	cv::morphologyEx(img, bg, cv::MORPH_DILATE, this->dkernel);
+	cv::divide(img, bg, img, 255);
 	cv::GaussianBlur(img, img, cv::Size(3, 3), 0);
 	cv::morphologyEx(img, img, cv::MORPH_OPEN, this->okernel);
 	cv::GaussianBlur(img, img, cv::Size(5, 5), 0);
 	cv::fastNlMeansDenoising(img, img, 21, 7, 21);
+
 	return img;
 }
 
@@ -344,7 +347,11 @@ std::string Spectreye::FromFrame(
 	auto iter = std::find(dists.begin(), dists.end(), dsorted[0]);
 	true_mid = locs[iter - dists.begin()];
 
-	//cv::Mat timg = this->ThreshFilter(img);
+	cv::Mat timg = this->ThreshFilter(img);
+
+	cv::imshow("timg", timg);
+	cv::waitKey(0);
+	cv::destroyAllWindows();
 	//std::vector<cv::Rect> boxes = this->OcrEast(timg);
 
 	return "";	
