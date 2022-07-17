@@ -321,7 +321,7 @@ std::string Spectreye::FromFrame(
 	
 	std::priority_queue<std::pair<int, int>> q;
 	for(int i=0; i<iheights.size(); ++i) {
-		q.push(std::pair<int, int>(heights[i], i));
+		q.push(std::pair<int, int>(iheights[i], i));
 	}
 	for(int i=0; i<5; ++i) {
 		int ki = q.top().second;
@@ -344,8 +344,8 @@ std::string Spectreye::FromFrame(
 	auto iter = std::find(dists.begin(), dists.end(), dsorted[0]);
 	true_mid = locs[iter - dists.begin()];
 
-	cv::Mat timg = this->ThreshFilter(img);
-	std::vector<cv::Rect> boxes = this->OcrEast(timg);
+	//cv::Mat timg = this->ThreshFilter(img);
+	//std::vector<cv::Rect> boxes = this->OcrEast(timg);
 
 	return "";	
 }
