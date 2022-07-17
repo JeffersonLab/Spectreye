@@ -266,7 +266,7 @@ std::string Spectreye::FromFrame(
 	}
 
 	std::vector<cv::Vec4f> cull;
-	for(auto l : opts) {
+	for(const auto& l : opts) {
 		if(!(l[1] < ltick[1]-(ltick[3]-ltick[1]))) {
 			cull.push_back(l);
 		} else if(!(l[3] > ltick[3]+(ltick[3]-ltick[1]))) {
@@ -278,6 +278,27 @@ std::string Spectreye::FromFrame(
 		if(std::abs(x_mid - l[0]) < std::abs(x_mid - mid[0]))
 			mid = l;
 	}
+
+	// equiv of proc_peak() from spectreye.py
+	std::vector<int> ticks;
+	for(int x=0; x<img.size().width; x++) {
+		if(img.at<unsigned char>(y, x) > img.at<unsigned char>(y, x+1)+1 &&
+				img.at<unsigned char>(y, x) > img.at<unsigned char>(y, x-1)+1) {
+			ticks.push_back(x);
+		}
+	}
+
+	std::vector<int> diffs;
+	for(int i=0; i<ticks.size()-1; i++) 
+		diffs.push_back(std::abs(ticks[i]-ticks[i+1]));
+	
+	std::unordered_map<int, int> freq_count;
+	for(const auto& d : diffs) 
+		freq_count[item]++;
+
+	auto mfreq = std::max_element(freq_count.begin(), freq_count.end(),
+			[] (const auto &x, const auto &y) {return x.second < y.second;});
+	pixel_ratio = mfreq->first;
 
 	
 
