@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tesseract/baseapi.h>
+#include <leptonica/allheaders.h>
 #include <opencv2/opencv.hpp>
 #include <vector>
 #include <string>
@@ -41,10 +43,12 @@ private:
 	cv::Ptr<cv::LineSegmentDetector> lsd;
 	cv::Ptr<cv::CLAHE> clahe;
 
+	tesseract::TessBaseAPI *tess;
+
 	cv::Mat MaskFilter(cv::Mat frame);
 	cv::Mat ThreshFilter(cv::Mat frame);
-	std::vector<cv::Rect>OcrEast(cv::Mat img);
-	std::vector<cv::Rect>OcrTess(cv::Mat img);
+	std::vector<cv::Rect>OcrEast(cv::Mat frame);
+	std::vector<cv::Rect>OcrTess(cv::Mat frame);
 	int FindTickCenter(cv::Mat img, int ytest, int xtest, int delta=0);
 	std::string FromFrame(cv::Mat frame, DeviceType dtype, std::string ipath, double enc_angle);
 

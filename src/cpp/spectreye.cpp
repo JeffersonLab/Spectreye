@@ -18,6 +18,8 @@ Spectreye::Spectreye(int debug)
 	this->clahe->setClipLimit(2.0);
 	this->clahe->setTilesGridSize(cv::Size(8, 8));
 
+	this->tess = new tesseract::TessBaseAPI();
+
 	this->debug = debug;
 }
 
@@ -71,11 +73,11 @@ cv::Mat Spectreye::MaskFilter(cv::Mat frame) {
 	return img;
 }
 
-std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat img) 
+std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat frame) 
 {
 	std::vector<cv::Mat> outs;
 	
-	cv::Mat timg = img.clone();
+	cv::Mat timg = frame.clone();
 	int H = timg.size().height;
 	int W = timg.size().width;
 
@@ -140,17 +142,57 @@ std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat img)
 
 	return rects;
 }
-/*
-std::vector<cv::Rect> Spectreye::OcrTess(cv::Mat img) 
+
+std::vector<cv::Rect> Spectreye::OcrTess(cv::Mat frame) 
 {
+	cv::Mat img, lab;	
+	cv::cvtColor(frame, lab, cv::COLOR_BGR2Lab);
 	
+	std::vector<cv::Mat> lplanes(3);
+	cv::split(lab, lplanes);
+	cv::Mat dst;
+	this->clahe->apply(lplanes[0], dst);
+	dst.copyTo(lplanes[0]);
+	cv::merge(lplanes, lab);
+	cv::cvtColor(lab, img, cv::COLOR_Lab2BGR);
+
+	cv::fastNlMeansDenoising(img, img, 21, 7, 21);
+	cv::GaussianBlur(img, img, cv::Size(3, 3), 0);
+	cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
+	cv::fastNlMeansDenoising(img, img, 21, 7, 21);
+	cv::GaussianBlur(img, img, cv::Size(3, 3), 0);
+	cv::fastNlMeansDenoising(img, img, 21, 7, 21);
+
+	this->tess->Init(NULL, "eng");
+	this->tess->SetImage((unsigned char*)img.data, img.size().width, img.size().height, 
+			img.channels(), img.step1());
+	this->tess->Recognize(0);
+	tesseract::ResultIterator* ri = this->tess->GetIterator();
+	tesseract::PageIteratorLevel level = tesseract::RIL_WORD;
+
+	std::vector<cv::Rect> rects;
+
+	if(ri != 0) {
+		do {
+			float conf = ri->Confidence(level);
+			int x1, y1, x2, y2;
+			ri->BoundingBox(level, &x1, &y1, &x2, &y2);
+
+			if(conf > 40 && y2 <= img.size().height/2) {
+				rects.push_back(cv::Rect(x1, y1, x2, y2));
+			}
+
+		} while (ri->Next(level));
+	}
+
+	return rects;
 }
 
 int Spectreye::FindTickCenter(cv::Mat img, int ytest, int xtest, int delta) 
 {
-
+	return 0;
 }
-*/
+
 std::string Spectreye::FromFrame(
 		cv::Mat frame, DeviceType dtype, std::string ipath, double enc_angle)
 {
