@@ -80,12 +80,14 @@ std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat frame)
 {
 	std::vector<cv::Mat> outs;
 	
-	cv::Mat timg = frame.clone();
+	cv::Mat timg;
+	cv::cvtColor(frame, timg, cv::COLOR_GRAY2BGR);
+
 	int H = timg.size().height;
 	int W = timg.size().width;
 
 	int origH = H;
-	int newW, newH = 320;
+	int newW = 320, newH = 320;
 	double rW = (double) W / (double) newW;
 	double rH = (double) H / (double) newH;
 	
@@ -149,6 +151,8 @@ std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat frame)
 std::vector<cv::Rect> Spectreye::OcrTess(cv::Mat frame) 
 {
 	cv::Mat img, lab;	
+
+	cv::cvtColor(frame, frame, cv::COLOR_GRAY2BGR);
 	cv::cvtColor(frame, lab, cv::COLOR_BGR2Lab);
 	
 	std::vector<cv::Mat> lplanes(3);
@@ -349,10 +353,7 @@ std::string Spectreye::FromFrame(
 
 	cv::Mat timg = this->ThreshFilter(img);
 
-	cv::imshow("timg", timg);
-	cv::waitKey(0);
-	cv::destroyAllWindows();
-	//std::vector<cv::Rect> boxes = this->OcrEast(timg);
+	std::vector<cv::Rect> boxes = this->OcrEast(timg);
 
 	return "";	
 }
