@@ -47,7 +47,7 @@ private:
 
 	cv::Mat MaskFilter(cv::Mat frame);
 	cv::Mat ThreshFilter(cv::Mat frame);
-	cv::Mat CLAHEFilter(cv::Mat frame);
+	cv::Mat CLAHEFilter(cv::Mat frame, int passes=1);
 	std::vector<cv::Rect>OcrEast(cv::Mat frame);
 	std::vector<cv::Rect>OcrTess(cv::Mat frame);
 	int FindTickCenter(cv::Mat img, int ytest, int xtest, int delta=0);

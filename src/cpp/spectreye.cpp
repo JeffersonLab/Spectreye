@@ -21,6 +21,7 @@ Spectreye::Spectreye(int debug)
 
 	this->tess = new tesseract::TessBaseAPI();
 	this->tess->Init(NULL, "eng");
+	this->tess->SetPageSegMode(tesseract::PageSegMode::PSM_SPARSE_TEXT);
 
 	this->debug = debug;
 }
@@ -40,14 +41,15 @@ std::string Spectreye::ExtractTimestamp(std::string path)
 	return "not implemented";
 }
 
-cv::Mat Spectreye::CLAHEFilter(cv::Mat frame) {
+cv::Mat Spectreye::CLAHEFilter(cv::Mat frame, int passes) {
 	cv::Mat img, lab;
 	cv::cvtColor(frame, lab, cv::COLOR_BGR2Lab);
 	
 	std::vector<cv::Mat> lplanes(3);
 	cv::split(lab, lplanes);
 	cv::Mat dst;
-	this->clahe->apply(lplanes[0], dst);
+	for(int i=0; i<passes; i++)
+		this->clahe->apply(lplanes[0], dst);
 	dst.copyTo(lplanes[0]);
 	cv::merge(lplanes, lab);
 	cv::cvtColor(lab, img, cv::COLOR_Lab2BGR);
@@ -70,7 +72,7 @@ cv::Mat Spectreye::ThreshFilter(cv::Mat frame) {
 
 cv::Mat Spectreye::MaskFilter(cv::Mat frame) {
 	cv::Mat mask, img;
-	img = this->CLAHEFilter(frame);
+	img = this->CLAHEFilter(frame, 1);
 
 	cv::fastNlMeansDenoising(img, img, 21, 7, 21);
 	cv::inRange(img, cv::Scalar(0, 0, 0), cv::Scalar(190, 190, 250), mask);
@@ -381,7 +383,6 @@ std::string Spectreye::FromFrame(
 	int cmpX, botY, bH;
 	cv::Rect boxdata;
 	for(const auto& rect : boxes) {
-
 		int startX = rect.x;
 		int startY = rect.y;
 		int endX = rect.x + rect.width;
@@ -425,11 +426,13 @@ std::string Spectreye::FromFrame(
 
 	cv::Mat numbox = cv::Mat(pass1, boxdata);
 	cv::cvtColor(numbox, numbox, cv::COLOR_GRAY2BGR);
-	numbox = this->CLAHEFilter(numbox);
+	numbox = this->CLAHEFilter(numbox, 2);
 
 	this->tess->SetImage((unsigned char*)numbox.data, numbox.size().width, numbox.size().height, 
 			numbox.channels(), numbox.step1());
 	std::string rawnum = this->tess->GetUTF8Text();
+
+	std::cout << "raw: " << rawnum << std::endl;
 
 	std::string nstr;
 	for(const auto& n : rawnum) {
@@ -445,6 +448,7 @@ std::string Spectreye::FromFrame(
 	
 	int tickR = 1;
 	double mark = std::stod(nstr);
+	std::cout << "mark: " << mark << std::endl;
 
 	if(dtype == DT_SHMS) {
 		tickR = -1;
@@ -462,8 +466,9 @@ std::string Spectreye::FromFrame(
 	double ns1   = mark + (tickR * dec_frac);
 	double pow   = std::pow(10.0f, 2);
 	double angle = std::round(ns1 * pow)/pow;
-	std::cout << angle << std::endl;	
+	std::cout << "calculated: " << angle << std::endl;	
 
+	cv::imshow("numbox", numbox);
 	cv::imshow("final", display);
 	for(;;) {
 		auto key = cv::waitKey(1);
@@ -479,8 +484,17 @@ std::string Spectreye::FromFrame(
 
 int main(int argc, char** argv) {
 	Spectreye* s = new Spectreye(true);
+	std::string res;
 
-	std::string res = s->GetAngleHMS("../../images/qtest/HMS_0.jpg");
+	if(argc == 1) {
+		res = s->GetAngleHMS("../../images/qtest/HMS_0.jpg");
+	} else {
+		std::string path = argv[1];
+		if(path.find("SHMS") != std::string::npos)
+			res = s->GetAngleSHMS(path);
+		else
+			res = s->GetAngleHMS(path);
+	}
 
 	return 0;
 }
