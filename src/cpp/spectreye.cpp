@@ -362,37 +362,10 @@ std::string Spectreye::FromFrame(
 	std::vector<int> dsorted = dists;
 	std::sort(dsorted.begin(), dsorted.end());
 
-	// this stuff is probably broken
-/*	std::vector<int> idx;
-	for(int i=0; i<2; i++) {
-		auto iter = std::find(dists.begin(), dists.end(), dsorted[dsorted.size()-1-i]);
-		idx.push_back(iter - dists.begin());
 
-		
-		cv::rectangle(display, 
-				cv::Point(ticks[idx[i]], ysplit), 
-				cv::Point(ticks[idx[i]], ysplit-heights[idx[i]]), 
-				cv::Scalar(255, 127, 255), 1);
-
-	}
-
-	std::vector<int> hsorted = heights;
-	std::sort(heights.begin(), heights.end());
-*/
 	auto iter = std::find(dists.begin(), dists.end(), dsorted[0]) - dists.begin();
 	auto iter2 = std::find(dists.begin(), dists.end(), dsorted[1]) - dists.begin();
 
-/*
-	cv::rectangle(display, 
-			cv::Point(locs[iter], ysplit), 
-			cv::Point(locs[iter], ysplit-heights[iter]), 
-			cv::Scalar(255, 127, 255), 1);
-
-	cv::rectangle(display, 
-			cv::Point(locs[iter2], ysplit), 
-			cv::Point(locs[iter2], ysplit-heights[iter2]), 
-			cv::Scalar(255, 127, 255), 1);
-*/
 	true_mid = locs[(heights[iter] > heights[iter2]) ? iter : iter2];
 	
 	cv::rectangle(display, cv::Point(true_mid, ysplit), cv::Point(true_mid, display.size().height), 
@@ -503,7 +476,26 @@ std::string Spectreye::FromFrame(
 	double angle = std::round(ns1 * pow)/pow;
 	std::cout << "calculated: " << angle << std::endl;	
 
-	cv::imshow("numbox", numbox);
+	cv::rectangle(display, cv::Point(0, display.size().height-92),
+			cv::Point(display.size().width, display.size().height-90),
+			cv::Scalar(0, 0, 0), cv::FILLED);
+
+	cv::rectangle(display, cv::Point(0, display.size().height-90), 
+			cv::Point(display.size().width, display.size().height),
+			cv::Scalar(127, 127, 127), cv::FILLED);
+	
+	std::stringstream l1, l2;
+
+	l1 << std::fixed << std::setprecision(2) << angle;
+	l1 << " degrees. (PRED)";
+	l2 << std::fixed << std::setprecision(2) << enc_angle;
+	l2 << " degrees. (" << ((dtype == DT_SHMS) ? "SHMS" : "HMS") << " ENC)";
+
+	cv::putText(display, l1.str(), cv::Point(10, display.size().height-60), this->font, 0.75, 
+			cv::Scalar(0, 255, 0), 2);
+	cv::putText(display, l2.str(), cv::Point(10, display.size().height-20), this->font, 0.75,
+			cv::Scalar(0, 255, 0), 2);
+
 	cv::imshow("final", display);
 	for(;;) {
 		auto key = cv::waitKey(1);
@@ -522,7 +514,7 @@ int main(int argc, char** argv) {
 	std::string res;
 
 	if(argc == 1) {
-		res = s->GetAngleHMS("../../images/qtest/HMS_0.jpg");
+		res = s->GetAngleHMS("../../images/qtest/HMS_0.jpg", 19.68);
 	} else {
 		std::string path = argv[1];
 		if(path.find("SHMS") != std::string::npos)
