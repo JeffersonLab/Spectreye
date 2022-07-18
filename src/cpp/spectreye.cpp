@@ -21,8 +21,8 @@ Spectreye::Spectreye(int debug)
 
 	this->tess = new tesseract::TessBaseAPI();
 	this->tess->Init(NULL, "eng");
-	this->tess->SetPageSegMode(tesseract::PageSegMode::PSM_SPARSE_TEXT);
-
+//	this->tess->SetPageSegMode(tesseract::PageSegMode::PSM_SPARSE_TEXT);
+	this->tess->SetPageSegMode(tesseract::PageSegMode::PSM_SINGLE_BLOCK);
 	this->debug = debug;
 }
 
@@ -234,8 +234,8 @@ std::string Spectreye::FromFrame(
 
 	cv::Mat img, display;
 	cv::cvtColor(frame, img, cv::COLOR_BGR2GRAY);
-	display = frame.clone();
-	
+	cv::cvtColor(img, display, cv::COLOR_GRAY2BGR);	
+
 	cv::Vec4f ltick, rtick;
 	std::vector<cv::Vec4f> segments;
 
@@ -297,8 +297,8 @@ std::string Spectreye::FromFrame(
 			mid = l;
 	}
 
-
 	// equiv of proc_peak() from spectreye.py
+	
 	int y = mid[1] + (mid[3]-mid[1])/2;
 
 	std::vector<int> ticks;
@@ -328,7 +328,8 @@ std::string Spectreye::FromFrame(
 	int uy, dy;
 	for(const auto& l : ticks) {
 		uy = y;
-		while(pass1.at<unsigned char>(uy, l) < pass1.at<unsigned char>(uy-1,l)+5)
+	//while(pass1.at<unsigned char>(uy, l) < pass1.at<unsigned char>(uy-1,l)+5)
+		while(uy >= ysplit)
 			uy--;
 		dy = y;
 		ysplit = uy;
@@ -352,20 +353,50 @@ std::string Spectreye::FromFrame(
 	for(const auto& i : opti) {
 		heights.push_back(iheights[i]);
 		locs.push_back(ticks[i]);
+
 	}
 
-	for(const auto& l : locs)
+	for(const auto& l : locs) {
 		dists.push_back(std::abs(x_mid - l));
-
+	}
 	std::vector<int> dsorted = dists;
 	std::sort(dsorted.begin(), dsorted.end());
 
 	// this stuff is probably broken
-	auto iter = std::find(dists.begin(), dists.end(), dsorted[0]);
-	true_mid = locs[iter - dists.begin()];
+/*	std::vector<int> idx;
+	for(int i=0; i<2; i++) {
+		auto iter = std::find(dists.begin(), dists.end(), dsorted[dsorted.size()-1-i]);
+		idx.push_back(iter - dists.begin());
+
+		
+		cv::rectangle(display, 
+				cv::Point(ticks[idx[i]], ysplit), 
+				cv::Point(ticks[idx[i]], ysplit-heights[idx[i]]), 
+				cv::Scalar(255, 127, 255), 1);
+
+	}
+
+	std::vector<int> hsorted = heights;
+	std::sort(heights.begin(), heights.end());
+*/
+	auto iter = std::find(dists.begin(), dists.end(), dsorted[0]) - dists.begin();
+	auto iter2 = std::find(dists.begin(), dists.end(), dsorted[1]) - dists.begin();
+
+/*
+	cv::rectangle(display, 
+			cv::Point(locs[iter], ysplit), 
+			cv::Point(locs[iter], ysplit-heights[iter]), 
+			cv::Scalar(255, 127, 255), 1);
+
+	cv::rectangle(display, 
+			cv::Point(locs[iter2], ysplit), 
+			cv::Point(locs[iter2], ysplit-heights[iter2]), 
+			cv::Scalar(255, 127, 255), 1);
+*/
+	true_mid = locs[(heights[iter] > heights[iter2]) ? iter : iter2];
 	
-	cv::rectangle(display, cv::Point(true_mid, 0), cv::Point(true_mid, display.size().height), 
-			cv::Scalar(255, 255, 0), 1);
+	cv::rectangle(display, cv::Point(true_mid, ysplit), cv::Point(true_mid, display.size().height), 
+			cv::Scalar(255, 255, 0), 2);
 
 	cv::Mat timg = this->ThreshFilter(img);
 
@@ -400,10 +431,10 @@ std::string Spectreye::FromFrame(
 			bH = std::abs(endY-startY)/2;
 
 			boxdata = cv::Rect(
-				std::max(0, startX-this->npad),
-				std::max(0, startY-(this->npad/2)),
-				std::min(img.size().width,  (endX-startX)+this->npad*2),
-				std::min(img.size().height, (endY-startY)+(this->npad)+(this->npad/2))
+				std::max(0, startX-this->npadx),
+				std::max(0, startY-(this->npady/2)),
+				std::min(img.size().width,  (endX-startX)+this->npadx*2),
+				std::min(img.size().height, (endY-startY)+(this->npady)+(this->npady/2))
 			);
 		}
 	}
@@ -421,15 +452,16 @@ std::string Spectreye::FromFrame(
 	if(tick > boxdata.x+boxdata.width || tick < boxdata.x)
 		tick = boxdata.x + boxdata.width/2; 
 
-	cv::rectangle(display, cv::Point(tick, 0), cv::Point(tick, display.size().height), cv::Scalar(255, 0, 0), 1);
+	cv::rectangle(display, cv::Point(tick, boxdata.y+boxdata.height), cv::Point(tick, ysplit), cv::Scalar(255, 0, 0), 2);
 
 
 	int pix_frac = true_mid - tick;
 	double dec_frac = ((double)pix_frac/pixel_ratio)*0.01;
 
-	cv::Mat numbox = cv::Mat(pass1, boxdata);
+	cv::Mat numbox = cv::Mat(timg, boxdata);
 	cv::cvtColor(numbox, numbox, cv::COLOR_GRAY2BGR);
-	numbox = this->CLAHEFilter(numbox, 2);
+	numbox = this->CLAHEFilter(numbox, 4);
+	cv::threshold(numbox, numbox, 127, 255, cv::THRESH_BINARY);
 
 	this->tess->SetImage((unsigned char*)numbox.data, numbox.size().width, numbox.size().height, 
 			numbox.channels(), numbox.step1());
