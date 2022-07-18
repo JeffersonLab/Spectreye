@@ -498,7 +498,7 @@ std::string Spectreye::FromFrame(
 
 		std::stringstream l;
 		l << std::fixed << std::setprecision(2) << composite;
-		l << " (COMP)";
+		l << " degrees. (COMP)";
 
 		cv::putText(display, l.str(), cv::Point(display.size().width/2+10, display.size().height-20),
 				this->font, 0.75, cv::Scalar(0, 255, 0), 2);
