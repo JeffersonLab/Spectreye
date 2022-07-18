@@ -26,12 +26,12 @@ Spectreye::Spectreye(int debug)
 	this->debug = debug;
 }
 
-std::string Spectreye::GetAngleHMS(std::string path, double encoder_angle) 
+SpectreyeReading Spectreye::GetAngleHMS(std::string path, double encoder_angle) 
 {
 	return this->FromFrame(cv::imread(path), DT_HMS, path, encoder_angle);
 }
 
-std::string Spectreye::GetAngleSHMS(std::string path, double encoder_angle) 
+SpectreyeReading Spectreye::GetAngleSHMS(std::string path, double encoder_angle) 
 {
 	return this->FromFrame(cv::imread(path), DT_SHMS, path, encoder_angle);
 }
@@ -39,6 +39,47 @@ std::string Spectreye::GetAngleSHMS(std::string path, double encoder_angle)
 std::string Spectreye::ExtractTimestamp(std::string path) 
 {
 	return "not implemented";
+}
+
+std::string Spectreye::DescribeReading(SpectreyeReading r) {
+	std::stringstream ret;
+
+	ret << "\n   Spectreye reading for \033[1;33m" << r.filename << "\033[1;0m\n\n";
+	ret << "   ";
+	switch(r.dev_type) {
+		case DT_SHMS:
+			ret << "\e[1mSHMS\e[0m";
+			break;
+		case DT_HMS:
+			ret << "\e[1mHMS\e[0m";
+			break;
+		default:
+			ret << "\e[1mUNKNOWN\e[0m";
+	}
+	ret << " - ";
+//	ret << std::endl << "-- Status: ";
+	switch(r.status) {
+		case RC_SUCCESS:
+			ret << "\033[1;32mSUCCESS\033[1;0m";
+			break;
+		case RC_NOREAD:
+			ret << "\033[1;33mNOREAD \033[1;0m";
+			break;
+		default:
+			ret << "\033[1;31mFAILURE\033[1;0m";
+			break;
+	}
+	ret << " - \033[1;34m";
+	ret << std::fixed << std::setprecision(2) << r.angle;
+	ret << " deg\033[1;0m\n";
+	ret << "   --  Timestamp:  " << r.timestamp << std::endl;
+	ret << "   --  OCR guess:  " << r.ocr_guess << " deg\n";
+	ret << "   --  Comp guess: " << r.comp_guess << " deg\n";
+	ret << "   --  Angle mark: " << r.mark << " deg\n";
+	ret << std::fixed << std::setprecision(3);
+	ret << "   --  Tick count: " << r.tick << " deg\n";
+
+	return ret.str();	
 }
 
 cv::Mat Spectreye::CLAHEFilter(cv::Mat frame, int passes) {
@@ -224,9 +265,10 @@ int Spectreye::FindTickCenter(cv::Mat img, int ytest, int xtest, int delta)
 	return (std::abs(xtest-optl) < std::abs(xtest-optr)) ? optl : optr;	
 }
 
-std::string Spectreye::FromFrame(
+SpectreyeReading Spectreye::FromFrame(
 		cv::Mat frame, DeviceType dtype, std::string ipath, double enc_angle)
-{
+{	
+	SpectreyeReading res;
 
 	int x_mid = frame.size().width/2;
 	int y_mid = frame.size().height/2;
@@ -384,7 +426,10 @@ std::string Spectreye::FromFrame(
 
 	if(boxes.size() == 0) {
 		printf("failure\n");
-		return "failure";
+		res.status = RC_FAILURE;
+		res.dev_type = dtype;
+		res.filename = ipath;
+		return res;
 	}
 
 	int cmpX, botY, bH;
@@ -476,55 +521,82 @@ std::string Spectreye::FromFrame(
 	double angle = std::round(ns1 * pow)/pow;
 	std::cout << "calculated: " << angle << std::endl;	
 
-	cv::rectangle(display, cv::Point(0, display.size().height-92),
-			cv::Point(display.size().width, display.size().height-90),
-			cv::Scalar(0, 0, 0), cv::FILLED);
-
-	cv::rectangle(display, cv::Point(0, display.size().height-90), 
-			cv::Point(display.size().width, display.size().height),
-			cv::Scalar(127, 127, 127), cv::FILLED);
-	
-	std::stringstream l1, l2;
-
-	l1 << std::fixed << std::setprecision(2) << angle;
-	l1 << " degrees. (PRED)";
-	cv::putText(display, l1.str(), cv::Point(10, display.size().height-60), this->font, 0.75, 
-			cv::Scalar(0, 255, 0), 2);
-
-	if(enc_angle) {
+	double composite = 0.0;	
+	if(enc_angle > 0) {
 		double enc_mark = (std::floor((enc_angle*2)+0.5)/2);
 		std::cout << enc_mark << std::endl;
-		double composite = enc_mark + (angle-mark);
+		composite = enc_mark + (angle-mark);
+	} 
 
-		std::stringstream l;
-		l << std::fixed << std::setprecision(2) << composite;
-		l << " degrees. (COMP)";
+	res.dev_type = dtype;
+	res.filename = ipath;
+	res.timestamp = timestamp;
+	res.mark = mark;
+	res.tick = (tickR * dec_frac);
 
-		cv::putText(display, l.str(), cv::Point(display.size().width/2+10, display.size().height-20),
-				this->font, 0.75, cv::Scalar(0, 255, 0), 2);
-		l2 << std::fixed << std::setprecision(2) << enc_angle;
-		l2 << " degrees. (" << ((dtype == DT_SHMS) ? "SHMS" : "HMS") << " ENC)";
+	if(enc_angle > 0) 
+		res.comp_guess = composite;
+	if(mark > 0) 
+		res.ocr_guess = angle;
 
-		cv::putText(display, l2.str(), cv::Point(10, display.size().height-20), this->font, 0.75,
+	if(res.ocr_guess != 0) {
+		res.status = RC_SUCCESS;
+		res.angle = res.ocr_guess;
+	} else if(res.comp_guess != 0) {
+		res.status = RC_NOREAD;
+		res.angle = res.comp_guess;
+	} else {
+		res.status = RC_FAILURE;
+	}
+		
+
+	if(this->debug) {
+		cv::rectangle(display, cv::Point(0, display.size().height-92),
+				cv::Point(display.size().width, display.size().height-90),
+				cv::Scalar(0, 0, 0), cv::FILLED);
+
+		cv::rectangle(display, cv::Point(0, display.size().height-90), 
+				cv::Point(display.size().width, display.size().height),
+				cv::Scalar(127, 127, 127), cv::FILLED);
+		
+		std::stringstream l1, l2;
+
+		l1 << std::fixed << std::setprecision(2) << angle;
+		l1 << " degrees. (OCR)";
+		cv::putText(display, l1.str(), cv::Point(10, display.size().height-60), this->font, 0.75, 
 				cv::Scalar(0, 255, 0), 2);
-	}
 
-	cv::imshow("final", display);
-	for(;;) {
-		auto key = cv::waitKey(1);
-		if(key == 113)
-			break;
-	}
-	cv::destroyAllWindows();
+		if(enc_angle) {
+			std::stringstream l;
+			l << std::fixed << std::setprecision(2) << composite;
+			l << " degrees. (COMP)";
 
+			cv::putText(display, l.str(), 
+					cv::Point(display.size().width/2+10, display.size().height-20),
+					this->font, 0.75, cv::Scalar(0, 255, 0), 2);
+			l2 << std::fixed << std::setprecision(2) << enc_angle;
+			l2 << " degrees. (" << ((dtype == DT_SHMS) ? "SHMS" : "HMS") << " ENC)";
+
+			cv::putText(display, l2.str(), cv::Point(10, display.size().height-20), this->font, 0.75,
+					cv::Scalar(0, 255, 0), 2);
+		}
+
+		cv::imshow("final", display);
+		for(;;) {
+			auto key = cv::waitKey(1);
+			if(key == 113)
+				break;
+		}
+		cv::destroyAllWindows();
+	}
 	this->tess->End();
 
-	return "";	
+	return res;	
 }
 
 int main(int argc, char** argv) {
 	Spectreye* s = new Spectreye(true);
-	std::string res;
+	SpectreyeReading res;
 
 	if(argc == 1) {
 		res = s->GetAngleHMS("../../images/qtest/HMS_0.jpg", 19.68);
@@ -545,6 +617,7 @@ int main(int argc, char** argv) {
 				res = s->GetAngleHMS(path);
 		}
 	}
+	std::cout << Spectreye::DescribeReading(res) << std::endl;
 
 	return 0;
 }

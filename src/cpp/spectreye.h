@@ -26,13 +26,29 @@ enum DeviceType
 	DT_SHMS    =  1
 };
 
+struct SpectreyeReading {
+	RetCode 	status;
+	DeviceType  dev_type;
+	std::string filename;
+	std::string timestamp;
+
+	double angle;
+
+	double ocr_guess;
+	double comp_guess;
+	
+	double mark;
+	double tick;
+};
+
+
 class Spectreye 
 {
 private:
 	bool debug = false;
 	int font = cv::FONT_HERSHEY_SIMPLEX;
 	int npadx = 50;
-	int npady= 25;
+	int npady = 25;
 
 	std::vector<std::string> layer_names = {
 		"feature_fusion/Conv_7/Sigmoid",
@@ -52,12 +68,13 @@ private:
 	std::vector<cv::Rect> OcrEast(cv::Mat frame);
 	std::vector<cv::Rect> OcrTess(cv::Mat frame);
 	int FindTickCenter(cv::Mat img, int ytest, int xtest, int delta=0);
-	std::string FromFrame(cv::Mat frame, DeviceType dtype, std::string ipath, double enc_angle);
+	SpectreyeReading FromFrame(cv::Mat frame, DeviceType dtype, std::string ipath, double enc_angle);
 
 public:
 	Spectreye(int debug=false);
-	std::string GetAngleHMS(std::string path, double encoder_angle=0.0);
-	std::string GetAngleSHMS(std::string path, double encoder_angle=0.0);
+	SpectreyeReading GetAngleHMS(std::string path, double encoder_angle=0.0);
+	SpectreyeReading GetAngleSHMS(std::string path, double encoder_angle=0.0);
 	std::string ExtractTimestamp(std::string path);
+	static std::string DescribeReading(SpectreyeReading r);
 
 };
