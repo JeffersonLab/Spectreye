@@ -333,11 +333,6 @@ class Spectreye(object):
         fil = cv2.morphologyEx(fil, cv2.MORPH_OPEN, self.okernel)
         fil = cv2.GaussianBlur(fil, (5, 5), 5)
 
-        if debug:
-            cv2.imshow("f", fil)
-            cv2.waitKey(0)
-            cv2.destroyAllWindows()
-
         return fil
 
     def thresh_filter(self, pass1):
@@ -358,8 +353,6 @@ class Spectreye(object):
 
         pass1 = cv2.GaussianBlur(pass1, (5, 5), 0)
         pass1 = cv2.fastNlMeansDenoising(pass1,None,21,7,21)
-#        cv2.imshow("t", pass1)
-#        cv2.waitKey(0)
 
         mid = segments[0]
         x_mid = img.shape[1]/2 
@@ -374,7 +367,6 @@ class Spectreye(object):
                 if l[0][3] - l[0][1] > mid[0][3] - mid[0][1]:
                     mid = l
 
-        print("mid: " + str(mid))
         # gets rid of outliers on y axis
         cull = []
         for l in opts:
@@ -388,8 +380,6 @@ class Spectreye(object):
             if abs(x_mid - l[0][0]) < abs(x_mid - mid[0][0]):
                 mid = l
    
-        print("mid: " + str(mid))
-
         # gets peak-based pixel width and mid prediction using original mid
         # position as starting point for peak trawling 
         width, peak_mid, ysplit = self.proc_peak(pass1, int(mid[0][1] + (mid[0][3]-mid[0][1])/2))
@@ -398,10 +388,6 @@ class Spectreye(object):
 
     # locates probable midpoint and tick width at a given ystd max element of unordered map c++11
     def proc_peak(self, img, y):
-
-        cv2.imshow("img", img)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
 
         x_mid = int(img.shape[1]/2)
 
