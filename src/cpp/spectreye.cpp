@@ -488,13 +488,26 @@ std::string Spectreye::FromFrame(
 
 	l1 << std::fixed << std::setprecision(2) << angle;
 	l1 << " degrees. (PRED)";
-	l2 << std::fixed << std::setprecision(2) << enc_angle;
-	l2 << " degrees. (" << ((dtype == DT_SHMS) ? "SHMS" : "HMS") << " ENC)";
-
 	cv::putText(display, l1.str(), cv::Point(10, display.size().height-60), this->font, 0.75, 
 			cv::Scalar(0, 255, 0), 2);
-	cv::putText(display, l2.str(), cv::Point(10, display.size().height-20), this->font, 0.75,
-			cv::Scalar(0, 255, 0), 2);
+
+	if(enc_angle) {
+		double enc_mark = (std::floor((enc_angle*2)+0.5)/2);
+		std::cout << enc_mark << std::endl;
+		double composite = enc_mark + (angle-mark);
+
+		std::stringstream l;
+		l << std::fixed << std::setprecision(2) << composite;
+		l << " (COMP)";
+
+		cv::putText(display, l.str(), cv::Point(display.size().width/2+10, display.size().height-20),
+				this->font, 0.75, cv::Scalar(0, 255, 0), 2);
+		l2 << std::fixed << std::setprecision(2) << enc_angle;
+		l2 << " degrees. (" << ((dtype == DT_SHMS) ? "SHMS" : "HMS") << " ENC)";
+
+		cv::putText(display, l2.str(), cv::Point(10, display.size().height-20), this->font, 0.75,
+				cv::Scalar(0, 255, 0), 2);
+	}
 
 	cv::imshow("final", display);
 	for(;;) {
@@ -517,10 +530,20 @@ int main(int argc, char** argv) {
 		res = s->GetAngleHMS("../../images/qtest/HMS_0.jpg", 19.68);
 	} else {
 		std::string path = argv[1];
-		if(path.find("SHMS") != std::string::npos)
-			res = s->GetAngleSHMS(path);
-		else
-			res = s->GetAngleHMS(path);
+
+		if(argc > 2) {
+			double enc = std::stod(argv[2]);
+
+			if(path.find("SHMS") != std::string::npos)
+				res = s->GetAngleSHMS(path, enc);
+			else
+				res = s->GetAngleHMS(path, enc);
+		} else {
+			if(path.find("SHMS") != std::string::npos)
+				res = s->GetAngleSHMS(path);
+			else
+				res = s->GetAngleHMS(path);
+		}
 	}
 
 	return 0;
