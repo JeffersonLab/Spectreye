@@ -20,6 +20,7 @@ Spectreye::Spectreye(int debug)
 	this->clahe->setTilesGridSize(cv::Size(8, 8));
 
 	this->tess = new tesseract::TessBaseAPI();
+	this->tess->Init(NULL, "eng");
 
 	this->debug = debug;
 }
@@ -39,6 +40,21 @@ std::string Spectreye::ExtractTimestamp(std::string path)
 	return "not implemented";
 }
 
+cv::Mat Spectreye::CLAHEFilter(cv::Mat frame) {
+	cv::Mat img, lab;
+	cv::cvtColor(frame, lab, cv::COLOR_BGR2Lab);
+	
+	std::vector<cv::Mat> lplanes(3);
+	cv::split(lab, lplanes);
+	cv::Mat dst;
+	this->clahe->apply(lplanes[0], dst);
+	dst.copyTo(lplanes[0]);
+	cv::merge(lplanes, lab);
+	cv::cvtColor(lab, img, cv::COLOR_Lab2BGR);
+
+	return img;
+}
+
 cv::Mat Spectreye::ThreshFilter(cv::Mat frame) {
 	cv::Mat img, bg;
 	cv::threshold(frame, img, 127, 255, cv::THRESH_BINARY_INV);
@@ -53,16 +69,8 @@ cv::Mat Spectreye::ThreshFilter(cv::Mat frame) {
 }
 
 cv::Mat Spectreye::MaskFilter(cv::Mat frame) {
-	cv::Mat img, lab, mask;
-	cv::cvtColor(frame, lab, cv::COLOR_BGR2Lab);
-	
-	std::vector<cv::Mat> lplanes(3);
-	cv::split(lab, lplanes);
-	cv::Mat dst;
-	this->clahe->apply(lplanes[0], dst);
-	dst.copyTo(lplanes[0]);
-	cv::merge(lplanes, lab);
-	cv::cvtColor(lab, img, cv::COLOR_Lab2BGR);
+	cv::Mat mask, img;
+	img = this->CLAHEFilter(frame);
 
 	cv::fastNlMeansDenoising(img, img, 21, 7, 21);
 	cv::inRange(img, cv::Scalar(0, 0, 0), cv::Scalar(190, 190, 250), mask);
@@ -170,7 +178,6 @@ std::vector<cv::Rect> Spectreye::OcrTess(cv::Mat frame)
 	cv::GaussianBlur(img, img, cv::Size(3, 3), 0);
 	cv::fastNlMeansDenoising(img, img, 21, 7, 21);
 
-	this->tess->Init(NULL, "eng");
 	this->tess->SetImage((unsigned char*)img.data, img.size().width, img.size().height, 
 			img.channels(), img.step1());
 	this->tess->Recognize(0);
@@ -411,11 +418,26 @@ std::string Spectreye::FromFrame(
 		tick = boxdata.x + boxdata.width/2; 
 
 	cv::rectangle(display, cv::Point(tick, 0), cv::Point(tick, display.size().height), cv::Scalar(255, 0, 0), 1);
-	
 
-	cv::imshow("final", display);
+
+	int pix_frac = true_mid - tick;
+	double dec_frac = ((double)pix_frac/pixel_ratio)*0.01;
+
+	cv::Mat numbox = cv::Mat(pass1, boxdata);
+	cv::cvtColor(numbox, numbox, cv::COLOR_GRAY2BGR);
+	numbox = this->CLAHEFilter(numbox);
+
+	this->tess->SetImage((unsigned char*)numbox.data, numbox.size().width, numbox.size().height, 
+			numbox.channels(), numbox.step1());
+	std::string rawnum = this->tess->GetUTF8Text();
+
+	std::cout << rawnum << std::endl;
+
+	cv::imshow("final", numbox);
 	cv::waitKey(0);
 	cv::destroyAllWindows();
+
+	this->tess->End();
 
 	return "";	
 }
