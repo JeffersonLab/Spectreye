@@ -374,6 +374,7 @@ class Spectreye(object):
                 if l[0][3] - l[0][1] > mid[0][3] - mid[0][1]:
                     mid = l
 
+        print("mid: " + str(mid))
         # gets rid of outliers on y axis
         cull = []
         for l in opts:
@@ -386,15 +387,22 @@ class Spectreye(object):
         for l in cull:
             if abs(x_mid - l[0][0]) < abs(x_mid - mid[0][0]):
                 mid = l
-     
+   
+        print("mid: " + str(mid))
+
         # gets peak-based pixel width and mid prediction using original mid
         # position as starting point for peak trawling 
         width, peak_mid, ysplit = self.proc_peak(pass1, int(mid[0][1] + (mid[0][3]-mid[0][1])/2))
  
         return (peak_mid, width, ysplit)
 
-    # locates probable midpoint and tick width at a given y
+    # locates probable midpoint and tick width at a given ystd max element of unordered map c++11
     def proc_peak(self, img, y):
+
+        cv2.imshow("img", img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
         x_mid = int(img.shape[1]/2)
 
         # gets all peaks where alpha change > 2 and y = y
@@ -481,6 +489,8 @@ class Spectreye(object):
                         ltick = l
                     if l[0][0] > x_mid and abs(x_mid - l[0][0]) < abs(x_mid - rtick[0][0]):
                         rtick = l
+
+        print(str(ltick[0][0]) + " " + str(rtick[0][0]))
 
         return (ltick, rtick, segments)
 
