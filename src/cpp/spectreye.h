@@ -31,7 +31,7 @@ class Spectreye
 private:
 	bool debug = false;
 	int font = cv::FONT_HERSHEY_SIMPLEX;
-	int npad = 100;
+	int npad = 25;
 	
 	std::vector<std::string> layer_names = {
 		"feature_fusion/Conv_7/Sigmoid",

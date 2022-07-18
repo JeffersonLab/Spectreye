@@ -90,7 +90,7 @@ std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat frame)
 	int newW = 320, newH = 320;
 	double rW = (double) W / (double) newW;
 	double rH = (double) H / (double) newH;
-	
+
 	cv::resize(timg, timg, cv::Size(newW, newH));
 	H = timg.size().height;
 	W = timg.size().width;
@@ -136,14 +136,14 @@ std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat frame)
 			int startY = (int)(endY - h);
 			
 			if (endY*rH < origH) {
-				rects.push_back(cv::Rect(startX*rW, startY*rH, endX*rW, endY*rH));
+				rects.push_back(cv::Rect(startX*rW, startY*rH, (endX-startX)*rW, (endY-startY)*rH));
 				confidences.push_back(scores_data[x]);
 			}
 		}
 	}
 
 	std::vector<int> indices;
-	cv::dnn::NMSBoxes(rects, confidences, 0.5, 0.5, indices);
+	cv::dnn::NMSBoxes(rects, confidences, 0, 0.5, indices);
 
 	return rects;
 }
@@ -223,9 +223,10 @@ std::string Spectreye::FromFrame(
 	int y_mid = frame.size().height/2;
 	std::string timestamp = this->ExtractTimestamp(ipath);
 
-	cv::Mat img;
+	cv::Mat img, display;
 	cv::cvtColor(frame, img, cv::COLOR_BGR2GRAY);
-
+	display = frame.clone();
+	
 	cv::Vec4f ltick, rtick;
 	std::vector<cv::Vec4f> segments;
 
@@ -350,10 +351,56 @@ std::string Spectreye::FromFrame(
 	// this stuff is probably broken
 	auto iter = std::find(dists.begin(), dists.end(), dsorted[0]);
 	true_mid = locs[iter - dists.begin()];
+	
+	cv::rectangle(display, cv::Point(true_mid, 0), cv::Point(true_mid, display.size().height), 
+			cv::Scalar(255, 255, 0), 1);
 
 	cv::Mat timg = this->ThreshFilter(img);
 
 	std::vector<cv::Rect> boxes = this->OcrEast(timg);
+
+	if(boxes.size() == 0) {
+		timg = this->MaskFilter(timg);
+		boxes = this->OcrEast(timg);
+		if(boxes.size() == 0)
+			boxes = this->OcrTess(timg);
+	}
+
+	if(boxes.size() == 0) {
+		printf("failure\n");
+		return "failure";
+	}
+
+	int cmpX, botY, bH;
+	cv::Rect boxdata;
+	for(const auto& rect : boxes) {
+
+		int startX = rect.x;
+		int startY = rect.y;
+		int endX = rect.x + rect.width;
+		int endY = rect.y + rect.height;
+
+		int tpos = startX + (endX-startX)/2;
+
+		if (std::abs(x_mid - tpos) < std::abs(x_mid - cmpX)) {
+			cmpX = tpos;
+			botY = endY;
+
+			bH = std::abs(endY-startY)/2;
+
+			boxdata = cv::Rect(
+				std::max(0, startX-this->npad),
+				std::max(0, startY-(this->npad/2)),
+				std::min(img.size().width,  (endX-startX)+this->npad*2),
+				std::min(img.size().height, (endY-startY)+(this->npad)+(this->npad/2))
+			);
+		}
+	}
+	cv::rectangle(display, boxdata, (0, 255, 0), 2);
+
+	cv::imshow("final", display);
+	cv::waitKey(0);
+	cv::destroyAllWindows();
 
 	return "";	
 }
