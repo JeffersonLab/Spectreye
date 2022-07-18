@@ -382,7 +382,7 @@ std::string Spectreye::FromFrame(
 
 		int tpos = startX + (endX-startX)/2;
 
-		if (std::abs(x_mid - tpos) < std::abs(x_mid - cmpX)) {
+		if (std::abs(x_mid - tpos) < std::abs(x_mid - cmpX) && endY < ysplit) {
 			cmpX = tpos;
 			botY = endY;
 
@@ -396,7 +396,22 @@ std::string Spectreye::FromFrame(
 			);
 		}
 	}
-	cv::rectangle(display, boxdata, (0, 255, 0), 2);
+	cv::rectangle(display, boxdata, cv::Scalar(0, 255, 0), 2);
+
+	cv::Vec4f tseg = segments[0];
+	for(const auto& l : segments) {
+		if(std::abs(cmpX - l[0]) < std::abs(cmpX-tseg[0]) && 
+				l[1] > botY && l[1] < ysplit)
+			tseg = l;
+		
+	}
+	int tmidy = tseg[1] + ((tseg[3]-tseg[1])/4)*3;
+	int tick = tseg[0];
+	if(tick > boxdata.x+boxdata.width || tick < boxdata.x)
+		tick = boxdata.x + boxdata.width/2; 
+
+	cv::rectangle(display, cv::Point(tick, 0), cv::Point(tick, display.size().height), cv::Scalar(255, 0, 0), 1);
+	
 
 	cv::imshow("final", display);
 	cv::waitKey(0);
