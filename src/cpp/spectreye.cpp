@@ -431,8 +431,6 @@ std::string Spectreye::FromFrame(
 			numbox.channels(), numbox.step1());
 	std::string rawnum = this->tess->GetUTF8Text();
 
-	std::cout << rawnum << std::endl;
-
 	std::string nstr;
 	for(const auto& n : rawnum) {
 		if(std::isdigit(n))
@@ -445,13 +443,33 @@ std::string Spectreye::FromFrame(
 	else
 		nstr.insert(2, ".");
 	
-	std::cout << nstr << std::endl;
-
 	int tickR = 1;
-	float mark = std::stof(nstr);
+	double mark = std::stod(nstr);
 
-	cv::imshow("final", numbox);
-	cv::waitKey(0);
+	if(dtype == DT_SHMS) {
+		tickR = -1;
+		if(mark > SHMS_MAX)
+			mark /= 10;
+		if(mark < SHMS_MIN)
+			mark = 0;
+	} else if(dtype == DT_HMS) {
+		if(mark > HMS_MAX)
+			mark /= 10;
+		if(mark < HMS_MIN)
+			mark = 0;
+	}
+
+	double ns1   = mark + (tickR * dec_frac);
+	double pow   = std::pow(10.0f, 2);
+	double angle = std::round(ns1 * pow)/pow;
+	std::cout << angle << std::endl;	
+
+	cv::imshow("final", display);
+	for(;;) {
+		auto key = cv::waitKey(1);
+		if(key == 113)
+			break;
+	}
 	cv::destroyAllWindows();
 
 	this->tess->End();
