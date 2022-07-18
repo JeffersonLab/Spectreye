@@ -282,6 +282,7 @@ std::string Spectreye::FromFrame(
 		}
 	}
 
+
 	std::vector<cv::Vec4f> cull;
 	for(const auto& l : opts) {
 		if(!(l[1] < ltick[1]-(ltick[3]-ltick[1]))) {
@@ -296,16 +297,18 @@ std::string Spectreye::FromFrame(
 			mid = l;
 	}
 
+
 	// equiv of proc_peak() from spectreye.py
 	int y = mid[1] + (mid[3]-mid[1])/2;
 
 	std::vector<int> ticks;
-	for(int x=0; x<img.size().width; x++) {
-		if(img.at<unsigned char>(y, x) > img.at<unsigned char>(y, x+1)+1 &&
-				img.at<unsigned char>(y, x) > img.at<unsigned char>(y, x-1)+1) {
+	for(int x=0; x<pass1.size().width; x++) {
+		if(pass1.at<unsigned char>(y, x) > pass1.at<unsigned char>(y, x+1)+1 &&
+				pass1.at<unsigned char>(y, x) > pass1.at<unsigned char>(y, x-1)+1) {
 			ticks.push_back(x);
 		}
 	}
+
 
 	std::vector<int> diffs;
 	for(int i=0; i<ticks.size()-1; i++) 
@@ -325,11 +328,11 @@ std::string Spectreye::FromFrame(
 	int uy, dy;
 	for(const auto& l : ticks) {
 		uy = y;
-		while(img.at<unsigned char>(uy, l) < img.at<unsigned char>(uy-1,l)+5)
+		while(pass1.at<unsigned char>(uy, l) < pass1.at<unsigned char>(uy-1,l)+5)
 			uy--;
 		dy = y;
 		ysplit = uy;
-		while(img.at<unsigned char>(dy, l) < img.at<unsigned char>(dy+1,l)+5)
+		while(pass1.at<unsigned char>(dy, l) < pass1.at<unsigned char>(dy+1,l)+5)
 			dy++;
 		iheights.push_back(dy-uy);
 	}
@@ -441,7 +444,7 @@ std::string Spectreye::FromFrame(
 		if(n == '\n')
 			break;
 	}
-	if(nstr.length() > 3)
+	if(nstr.length() < 3)
 		nstr += ".0";
 	else
 		nstr.insert(2, ".");
