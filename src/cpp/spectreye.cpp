@@ -57,7 +57,6 @@ std::string Spectreye::DescribeReading(SpectreyeReading r) {
 			ret << "\e[1mUNKNOWN\e[0m";
 	}
 	ret << " - ";
-//	ret << std::endl << "-- Status: ";
 	switch(r.status) {
 		case RC_SUCCESS:
 			ret << "\033[1;32mSUCCESS\033[1;0m";
@@ -76,7 +75,7 @@ std::string Spectreye::DescribeReading(SpectreyeReading r) {
 	ret << "   --  OCR guess:  " << r.ocr_guess << " deg\n";
 	ret << "   --  Comp guess: " << r.comp_guess << " deg\n";
 	ret << "   --  Angle mark: " << r.mark << " deg\n";
-	ret << std::fixed << std::setprecision(3);
+	ret << std::fixed << ((r.tick > 0) ? std::setprecision(3) : std::setprecision(2));
 	ret << "   --  Tick count: " << r.tick << " deg\n";
 
 	return ret.str();	
@@ -548,7 +547,8 @@ SpectreyeReading Spectreye::FromFrame(
 	} else {
 		res.status = RC_FAILURE;
 	}
-		
+	
+	std::cout << Spectreye::DescribeReading(res) << std::endl;
 
 	if(this->debug) {
 		cv::rectangle(display, cv::Point(0, display.size().height-92),
@@ -617,8 +617,6 @@ int main(int argc, char** argv) {
 				res = s->GetAngleHMS(path);
 		}
 	}
-	std::cout << Spectreye::DescribeReading(res) << std::endl;
-
 	return 0;
 }
 
