@@ -433,6 +433,23 @@ std::string Spectreye::FromFrame(
 
 	std::cout << rawnum << std::endl;
 
+	std::string nstr;
+	for(const auto& n : rawnum) {
+		if(std::isdigit(n))
+			nstr += n;
+		if(n == '\n')
+			break;
+	}
+	if(nstr.length() > 3)
+		nstr += ".0";
+	else
+		nstr.insert(2, ".");
+	
+	std::cout << nstr << std::endl;
+
+	int tickR = 1;
+	float mark = std::stof(nstr);
+
 	cv::imshow("final", numbox);
 	cv::waitKey(0);
 	cv::destroyAllWindows();
