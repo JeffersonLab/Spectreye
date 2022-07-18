@@ -486,7 +486,9 @@ SpectreyeReading Spectreye::FromFrame(
 	this->tess->SetImage((unsigned char*)numbox.data, numbox.size().width, numbox.size().height, 
 			numbox.channels(), numbox.step1());
 	std::string rawnum = this->tess->GetUTF8Text();
-
+	bool tess2 = false;
+	
+build_mark: // :-)
 	std::cout << "raw: " << rawnum << std::endl;
 
 	std::string nstr;
@@ -517,6 +519,14 @@ SpectreyeReading Spectreye::FromFrame(
 		if(mark < HMS_MIN)
 			mark = 0;
 	}
+
+	if(mark == 0 && !tess2) {
+		tess2 = true;
+		this->tess->SetPageSegMode(tesseract::PageSegMode::PSM_SPARSE_TEXT);
+		rawnum = this->tess->GetUTF8Text();
+		goto build_mark;
+	}
+
 
 	double ns1   = mark + (tickR * dec_frac);
 	double pow   = std::pow(10.0f, 2);
