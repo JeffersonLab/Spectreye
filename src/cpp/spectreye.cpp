@@ -72,8 +72,11 @@ std::string Spectreye::DescribeReading(SpectreyeReading r) {
 	ret << std::fixed << std::setprecision(2) << r.angle;
 	ret << " deg\033[1;0m\n";
 	ret << "   --  Timestamp:  " << r.timestamp << std::endl;
+	ret << std::fixed << ((r.ocr_guess != 0) ? std::setprecision(2) : std::setprecision(3));
 	ret << "   --  OCR guess:  " << r.ocr_guess << " deg\n";
+	ret << std::fixed << ((r.comp_guess != 0) ? std::setprecision(2) : std::setprecision(3));
 	ret << "   --  Comp guess: " << r.comp_guess << " deg\n";
+	ret << std::fixed << ((r.mark != 0) ? std::setprecision(2) : std::setprecision(3));
 	ret << "   --  Angle mark: " << r.mark << " deg\n";
 	ret << std::fixed << ((r.tick > 0) ? std::setprecision(3) : std::setprecision(2));
 	ret << "   --  Tick count: " << r.tick << " deg\n";
