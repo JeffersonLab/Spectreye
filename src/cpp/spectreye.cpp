@@ -39,7 +39,6 @@ SpectreyeReading Spectreye::GetAngleSHMS(std::string path, double encoder_angle)
 
 std::string Spectreye::ExtractTimestamp(std::string path) 
 {
-
 	std::string com = "strings " + path + " | grep -P \"(19|20)[\\d]{2,2}\"";
 
 	char buf[128];
@@ -72,7 +71,8 @@ std::string Spectreye::ExtractTimestamp(std::string path)
 	return datetime;
 }
 
-std::string Spectreye::DescribeReading(SpectreyeReading r) {
+std::string Spectreye::DescribeReading(SpectreyeReading r) 
+{
 	std::stringstream ret;
 
 	ret << "\n   Spectreye reading for \033[1;33m" << r.filename << "\033[1;0m\n\n";
@@ -115,23 +115,26 @@ std::string Spectreye::DescribeReading(SpectreyeReading r) {
 	return ret.str();	
 }
 
-cv::Mat Spectreye::CLAHEFilter(cv::Mat frame, int passes) {
+cv::Mat Spectreye::CLAHEFilter(cv::Mat frame, int passes) 
+{
 	cv::Mat img, lab;
 	cv::cvtColor(frame, lab, cv::COLOR_BGR2Lab);
 	
 	std::vector<cv::Mat> lplanes(3);
 	cv::split(lab, lplanes);
 	cv::Mat dst;
-	for(int i=0; i<passes; i++)
+	for(int i=0; i<passes; i++) {
 		this->clahe->apply(lplanes[0], dst);
-	dst.copyTo(lplanes[0]);
+		dst.copyTo(lplanes[0]);
+	}
 	cv::merge(lplanes, lab);
 	cv::cvtColor(lab, img, cv::COLOR_Lab2BGR);
 
 	return img;
 }
 
-cv::Mat Spectreye::ThreshFilter(cv::Mat frame) {
+cv::Mat Spectreye::ThreshFilter(cv::Mat frame) 
+{
 	cv::Mat img, bg;
 	cv::threshold(frame, img, 127, 255, cv::THRESH_BINARY_INV);
 	cv::morphologyEx(img, bg, cv::MORPH_DILATE, this->dkernel);
@@ -144,7 +147,8 @@ cv::Mat Spectreye::ThreshFilter(cv::Mat frame) {
 	return img;
 }
 
-cv::Mat Spectreye::MaskFilter(cv::Mat frame) {
+cv::Mat Spectreye::MaskFilter(cv::Mat frame) 
+{
 	cv::Mat mask, img;
 	img = this->CLAHEFilter(frame, 1);
 
@@ -308,8 +312,6 @@ SpectreyeReading Spectreye::FromFrame(
 	ipath = std::string(realpath(tpath, NULL));
 
 	std::string timestamp = this->ExtractTimestamp(ipath);
-
-	std::cout << ipath << std::endl;
 
 	int x_mid = frame.size().width/2;
 	int y_mid = frame.size().height/2;
@@ -518,8 +520,9 @@ SpectreyeReading Spectreye::FromFrame(
 
 	cv::Mat numbox = cv::Mat(timg, boxdata);
 	cv::cvtColor(numbox, numbox, cv::COLOR_GRAY2BGR);
-	numbox = this->CLAHEFilter(numbox, 4);
-	cv::threshold(numbox, numbox, 127, 255, cv::THRESH_BINARY);
+	numbox = this->CLAHEFilter(numbox, 3);
+//	cv::morphologyEx(numbox, numbox, cv::MORPH_CLOSE, this->ckernel);
+//	cv::threshold(numbox, numbox, 200, 255, cv::THRESH_BINARY);
 
 	this->tess->SetImage((unsigned char*)numbox.data, numbox.size().width, numbox.size().height, 
 			numbox.channels(), numbox.step1());
@@ -527,8 +530,7 @@ SpectreyeReading Spectreye::FromFrame(
 	bool tess2 = false;
 	
 build_mark: // :-)
-	std::cout << "raw: " << rawnum << std::endl;
-
+	
 	std::string nstr;
 	for(const auto& n : rawnum) {
 		if(std::isdigit(n))
@@ -543,7 +545,6 @@ build_mark: // :-)
 	
 	int tickR = 1;
 	double mark = std::stod(nstr);
-	std::cout << "mark: " << mark << std::endl;
 
 	if(dtype == DT_SHMS) {
 		tickR = -1;
@@ -559,6 +560,7 @@ build_mark: // :-)
 	}
 
 	if(mark == 0 && !tess2) {
+		std::cout << "rebuild" << std::endl;
 		tess2 = true;
 		this->tess->SetPageSegMode(tesseract::PageSegMode::PSM_SPARSE_TEXT);
 		rawnum = this->tess->GetUTF8Text();
@@ -569,12 +571,10 @@ build_mark: // :-)
 	double ns1   = mark + (tickR * dec_frac);
 	double pow   = std::pow(10.0f, 2);
 	double angle = std::round(ns1 * pow)/pow;
-	std::cout << "calculated: " << angle << std::endl;	
 
 	double composite = 0.0;	
 	if(enc_angle > 0) {
 		double enc_mark = (std::floor((enc_angle*2)+0.5)/2);
-		std::cout << enc_mark << std::endl;
 		composite = enc_mark + (angle-mark);
 	} 
 
@@ -633,6 +633,7 @@ build_mark: // :-)
 		}
 
 		cv::imshow("final", display);
+		cv::imshow("nb", numbox);
 		for(;;) {
 			auto key = cv::waitKey(1);
 			if(key == 113)
