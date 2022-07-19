@@ -10,13 +10,16 @@
 const double HMS_MIN  = 10.5;
 const double HMS_MAX  = 90.0;
 const double SHMS_MIN =  5.5;
-const double SHMS_MAX = 35.0;
+const double SHMS_MAX = 35.0; //actual max is not actually 25 as documents purport. haven't seen >35
+
+const double MARK_THRESH = 1.0;
 
 enum RetCode 
 {
 	RC_FAILURE = -1,
 	RC_SUCCESS =  0,
-	RC_NOREAD  =  1
+	RC_NOREAD  =  1,
+	RC_EXCEED  =  2 
 };
 
 enum DeviceType 

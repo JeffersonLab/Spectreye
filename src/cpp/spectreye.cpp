@@ -93,7 +93,10 @@ std::string Spectreye::DescribeReading(SpectreyeReading r)
 			ret << "\033[1;32mSUCCESS\033[1;0m";
 			break;
 		case RC_NOREAD:
-			ret << "\033[1;33mNOREAD \033[1;0m";
+			ret << "\033[1;33mNOREAD\033[1;0m";
+			break;
+		case RC_EXCEED:
+			ret << "\033[1;33mEXCEED\033[1;0m";
 			break;
 		default:
 			ret << "\033[1;31mFAILURE\033[1;0m";
@@ -590,14 +593,22 @@ build_mark: // :-)
 		res.ocr_guess = angle;
 
 	if(res.ocr_guess != 0) {
-		res.status = RC_SUCCESS;
-		res.angle = res.ocr_guess;
+		if(enc_angle > 0 && res.comp_guess != 0 &&
+				std::abs(res.ocr_guess - enc_angle) > MARK_THRESH) {
+			res.status = RC_EXCEED;
+			res.angle = res.comp_guess;
+		} else {
+			res.status = RC_SUCCESS;
+			res.angle = res.ocr_guess;
+		}
 	} else if(res.comp_guess != 0) {
 		res.status = RC_NOREAD;
 		res.angle = res.comp_guess;
 	} else {
 		res.status = RC_FAILURE;
 	}
+	
+
 	
 	std::cout << Spectreye::DescribeReading(res) << std::endl;
 
@@ -633,7 +644,7 @@ build_mark: // :-)
 		}
 
 		cv::imshow("final", display);
-		cv::imshow("nb", numbox);
+//		cv::imshow("nb", numbox);
 		for(;;) {
 			auto key = cv::waitKey(1);
 			if(key == 113)
