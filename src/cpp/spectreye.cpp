@@ -40,9 +40,36 @@ SpectreyeReading Spectreye::GetAngleSHMS(std::string path, double encoder_angle)
 std::string Spectreye::ExtractTimestamp(std::string path) 
 {
 
-	
+	std::string com = "strings " + path + " | grep -P \"(19|20)[\\d]{2,2}\"";
 
-	return "not implemented";
+	char buf[128];
+	std::string res;
+
+	FILE* pipe = popen(com.c_str(), "r");
+	if(!pipe)
+		return "failed to build timestamp";
+
+	while(!feof(pipe)) {
+		if(fgets(buf, 128, pipe) != NULL)
+			res += buf;
+	}
+	pclose(pipe);
+
+	std::string datetime;
+	int n = 0;
+	for(const auto& c : res) {
+		if(c != '\n')
+			if(c == ':' && n < 2) {
+				datetime += '-';
+				n++;
+			} else {
+				datetime += c;
+			}
+		else
+			break;
+	}
+
+	return datetime;
 }
 
 std::string Spectreye::DescribeReading(SpectreyeReading r) {
@@ -276,11 +303,11 @@ SpectreyeReading Spectreye::FromFrame(
 {
 	SpectreyeReading res;
 
-	std::string timestamp = this->ExtractTimestamp(ipath);
-
 	const char* icpy = ipath.c_str();
 	const char* tpath = const_cast<char*>(icpy);
 	ipath = std::string(realpath(tpath, NULL));
+
+	std::string timestamp = this->ExtractTimestamp(ipath);
 
 	std::cout << ipath << std::endl;
 
