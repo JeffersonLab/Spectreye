@@ -2,6 +2,7 @@
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
 #include <cstdio>
+#include <stdlib.h>
 
 #include "spectreye.h"
 
@@ -38,6 +39,9 @@ SpectreyeReading Spectreye::GetAngleSHMS(std::string path, double encoder_angle)
 
 std::string Spectreye::ExtractTimestamp(std::string path) 
 {
+
+	
+
 	return "not implemented";
 }
 
@@ -269,12 +273,19 @@ int Spectreye::FindTickCenter(cv::Mat img, int ytest, int xtest, int delta)
 
 SpectreyeReading Spectreye::FromFrame(
 		cv::Mat frame, DeviceType dtype, std::string ipath, double enc_angle)
-{	
+{
 	SpectreyeReading res;
+
+	std::string timestamp = this->ExtractTimestamp(ipath);
+
+	const char* icpy = ipath.c_str();
+	const char* tpath = const_cast<char*>(icpy);
+	ipath = std::string(realpath(tpath, NULL));
+
+	std::cout << ipath << std::endl;
 
 	int x_mid = frame.size().width/2;
 	int y_mid = frame.size().height/2;
-	std::string timestamp = this->ExtractTimestamp(ipath);
 
 	cv::Mat img, display;
 	cv::cvtColor(frame, img, cv::COLOR_BGR2GRAY);
@@ -425,7 +436,7 @@ SpectreyeReading Spectreye::FromFrame(
 		if(boxes.size() == 0)
 			boxes = this->OcrTess(timg);
 	}
-
+	
 	if(boxes.size() == 0) {
 		printf("failure\n");
 		res.status = RC_FAILURE;
