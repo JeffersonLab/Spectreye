@@ -421,7 +421,7 @@ SpectreyeReading Spectreye::FromFrame(
 		diffs.push_back(std::abs(ticks[i]-ticks[i+1]));
 	
 	std::unordered_map<int, int> freq_count;
-	for(const auto& d : di./spectreye ../../images/singles/COIN_SHMS_angle_02279.jpgffs) 
+	for(const auto& d : diffs) 
 		freq_count[d]++;
 
 	using ptype = decltype(freq_count)::value_type; // c++11 got me feeling funny
@@ -631,7 +631,6 @@ build_mark: // :-)
 	} else {
 		res.status = RC_FAILURE;
 	}
-	std::cout << Spectreye::DescribeReading(res) << std::endl;
 
 	if(this->debug) {
 		cv::rectangle(display, cv::Point(0, display.size().height-92),
@@ -677,30 +676,3 @@ build_mark: // :-)
 
 	return res;	
 }
-
-int main(int argc, char** argv) {
-	Spectreye* s = new Spectreye(false);
-	SpectreyeReading res;
-
-	if(argc == 1) {
-		res = s->GetAngleHMS("../../images/qtest/HMS_0.jpg", 19.68);
-	} else {
-		std::string path = std::string(argv[1]);
-
-		if(argc > 2) {
-			double enc = std::stod(argv[2]);
-
-			if(path.find("SHMS") != std::string::npos)
-				res = s->GetAngleSHMS(path, enc);
-			else
-				res = s->GetAngleHMS(path, enc);
-		} else {
-			if(path.find("SHMS") != std::string::npos)
-				res = s->GetAngleSHMS(path);
-			else
-				res = s->GetAngleHMS(path);
-		}
-	}
-	return 0;
-}
-
