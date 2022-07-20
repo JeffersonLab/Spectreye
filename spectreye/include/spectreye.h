@@ -85,6 +85,7 @@ public:
 	Spectreye(int debug=false);
 	SpectreyeReading GetAngleHMS(std::string path, double encoder_angle=0.0);
 	SpectreyeReading GetAngleSHMS(std::string path, double encoder_angle=0.0);
+	void Destroy();
 	std::string ExtractTimestamp(std::string path);
 	static std::string DescribeReading(SpectreyeReading r);
 

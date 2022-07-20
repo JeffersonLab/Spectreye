@@ -33,5 +33,7 @@ int main(int argc, char** argv) {
 
 	std::cout << Spectreye::DescribeReading(res) << std::endl;
 
+	s->Destroy();
+
 	return 0;
 }

@@ -20,6 +20,3 @@ target_link_libraries(spectreye ${OpenCV_LIBS} tesseract)
 install(TARGETS spectreye DESTINATION /usr/lib)
 install(FILES include/spectreye.h DESTINATION include)
 
-#add_executable( spectreye src/spectreye_cli.cpp src/spectreye.cpp )
-
-

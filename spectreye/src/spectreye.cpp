@@ -672,7 +672,10 @@ build_mark: // :-)
 		}
 		cv::destroyAllWindows();
 	}
-	this->tess->End();
 
 	return res;	
+}
+
+void Spectreye::Destroy() {
+	this->tess->End();
 }
