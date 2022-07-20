@@ -1,5 +1,5 @@
 # Spectreye
-<img src="images/testgraphic.png" />
+<img src="images/presentation/testgraphic.png" />
 
 ## Intro
 Spectreye is a tool for automatically determining the angle of the Super High Momentum Spectrometer (SHMS) and the High Momentum Spectrometer (HMS) in JLab's Experimental Hall C. The program uses computer vision and optical character recognition to determine the angle of the spectrometers from photos of their Vernier calipers. A non-technical overview of the project can be found [here](https://docs.google.com/presentation/d/1qKy9npTbnCOFVQCxMHfdYh_vlz-lOZ7rnzxkA6Q_Qw8/edit#slide=id.gf489b73e5b_1_0).
