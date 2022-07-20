@@ -1,4 +1,4 @@
-# Spectreye
+# <center>Spectreye</center>
 <img src="images/presentation/testgraphic.png" />
 
 ## Intro
