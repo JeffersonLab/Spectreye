@@ -17,7 +17,7 @@ Spectreye::Spectreye(int debug)
 	this->okernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(1,1));
 	this->ckernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2,4));
 
-	this->net = cv::dnn::readNet("data/east.pb");
+	this->net = cv::dnn::readNet(std::string(EAST_PATH));
 	this->lsd = cv::createLineSegmentDetector(0);
 
 	this->clahe = cv::createCLAHE();

@@ -11,6 +11,10 @@
 #include <string>
 #include <optional>
 
+#ifndef EAST_PATH
+	#define EAST_PATH "../data/east.pb"
+#endif
+
 const double HMS_MIN  = 10.5;
 const double HMS_MAX  = 90.0;
 const double SHMS_MIN =  5.5;
