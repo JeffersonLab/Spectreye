@@ -130,5 +130,6 @@ While Spectreye is complete and usable, a number of improvements still need to b
 
 ## 
 Spectreye was written by Will Savage during the 2022 JLAB SRGS Internship program. 
+
 Thank you to mentors Dr. David Lawrence, Mr. Nathan Brei, and Dr. Brad Sawatzky.
 
