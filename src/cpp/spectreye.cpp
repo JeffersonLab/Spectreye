@@ -26,7 +26,6 @@ Spectreye::Spectreye(int debug)
 
 	this->tess = new tesseract::TessBaseAPI();
 	this->tess->Init(NULL, "eng");
-//	this->tess->SetPageSegMode(tesseract::PageSegMode::PSM_SPARSE_TEXT);
 	this->tess->SetPageSegMode(tesseract::PageSegMode::PSM_SINGLE_BLOCK);
 	this->debug = debug;
 }
@@ -205,6 +204,8 @@ std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat frame)
 	int nrows = scores.size[2];
 	int ncols = scores.size[3];
 
+	cv::Mat temp = frame.clone();
+
 	for(int y=0; y<nrows; ++y) {
 		const float* scores_data = scores.ptr<float>(0, 0, y);
 		const float* xdata0 = geometry.ptr<float>(0, 0, y);
@@ -231,12 +232,20 @@ std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat frame)
 			int startY = (int)(endY - h);
 			
 			if (endY*rH < origH) {
-				rects.push_back(cv::Rect(startX*rW, startY*rH, (endX-startX)*rW, (endY-startY)*rH));
+				cv::Rect rect = cv::Rect(startX*rW, startY*rH, (endX-startX)*rW, (endY-startY)*rH);
+
+				cv::rectangle(temp, rect, cv::Scalar(0, 255, 0), 2);
+
+				rects.push_back(rect);
 				confidences.push_back(scores_data[x]);
 			}
 		}
 	}
-
+/*
+	cv::imshow("R", temp);
+	cv::waitKey(0);
+	cv::destroyAllWindows();
+*/
 	std::vector<int> indices;
 	cv::dnn::NMSBoxes(rects, confidences, 0, 0.5, indices);
 
@@ -245,6 +254,7 @@ std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat frame)
 
 std::vector<cv::Rect> Spectreye::OcrTess(cv::Mat frame) 
 {
+	std::cout << "Using Tess OCR" << std::endl;
 	cv::Mat img, lab;	
 
 	cv::cvtColor(frame, frame, cv::COLOR_GRAY2BGR);
@@ -320,12 +330,17 @@ SpectreyeReading Spectreye::FromFrame(
 
 	std::string timestamp = this->ExtractTimestamp(ipath);
 
+	res.dev_type = dtype;
+	res.filename = ipath;
+	res.timestamp = timestamp;
+
 	int x_mid = frame.size().width/2;
 	int y_mid = frame.size().height/2;
 
 	cv::Mat img, display;
 	cv::cvtColor(frame, img, cv::COLOR_BGR2GRAY);
 	cv::cvtColor(img, display, cv::COLOR_GRAY2BGR);	
+	
 
 	cv::Vec4f ltick, rtick;
 	std::vector<cv::Vec4f> segments;
@@ -406,7 +421,7 @@ SpectreyeReading Spectreye::FromFrame(
 		diffs.push_back(std::abs(ticks[i]-ticks[i+1]));
 	
 	std::unordered_map<int, int> freq_count;
-	for(const auto& d : diffs) 
+	for(const auto& d : di./spectreye ../../images/singles/COIN_SHMS_angle_02279.jpgffs) 
 		freq_count[d]++;
 
 	using ptype = decltype(freq_count)::value_type; // c++11 got me feeling funny
@@ -491,7 +506,7 @@ SpectreyeReading Spectreye::FromFrame(
 
 		int tpos = startX + (endX-startX)/2;
 
-		if (std::abs(x_mid - tpos) < std::abs(x_mid - cmpX) && endY < ysplit) {
+		if (std::abs(x_mid - tpos) < std::abs(x_mid - cmpX) && endY < ysplit - ((endY-startY)/3)) {
 			cmpX = tpos;
 			botY = endY;
 
@@ -525,7 +540,16 @@ SpectreyeReading Spectreye::FromFrame(
 	int pix_frac = true_mid - tick;
 	double dec_frac = ((double)pix_frac/pixel_ratio)*0.01;
 
-	cv::Mat numbox = cv::Mat(timg, boxdata);
+	if(boxdata.width == 0) {
+		res.status = RC_FAILURE;
+
+		std::cout << Spectreye::DescribeReading(res) << std::endl;
+
+		this->tess->End();
+		return res;
+	}
+
+	cv::Mat numbox = cv::Mat(timg.clone(), boxdata);
 	cv::cvtColor(numbox, numbox, cv::COLOR_GRAY2BGR);
 	numbox = this->CLAHEFilter(numbox, 3);
 //	cv::morphologyEx(numbox, numbox, cv::MORPH_CLOSE, this->ckernel);
@@ -571,9 +595,8 @@ build_mark: // :-)
 		tess2 = true;
 		this->tess->SetPageSegMode(tesseract::PageSegMode::PSM_SPARSE_TEXT);
 		rawnum = this->tess->GetUTF8Text();
-		goto build_mark;
+		goto build_mark; // :-)
 	}
-
 
 	double ns1   = mark + (tickR * dec_frac);
 	double pow   = std::pow(10.0f, 2);
@@ -585,9 +608,6 @@ build_mark: // :-)
 		composite = enc_mark + (angle-mark);
 	} 
 
-	res.dev_type = dtype;
-	res.filename = ipath;
-	res.timestamp = timestamp;
 	res.mark = mark;
 	res.tick = (tickR * dec_frac);
 
@@ -611,9 +631,6 @@ build_mark: // :-)
 	} else {
 		res.status = RC_FAILURE;
 	}
-	
-
-	
 	std::cout << Spectreye::DescribeReading(res) << std::endl;
 
 	if(this->debug) {
@@ -662,13 +679,13 @@ build_mark: // :-)
 }
 
 int main(int argc, char** argv) {
-	Spectreye* s = new Spectreye(true);
+	Spectreye* s = new Spectreye(false);
 	SpectreyeReading res;
 
 	if(argc == 1) {
 		res = s->GetAngleHMS("../../images/qtest/HMS_0.jpg", 19.68);
 	} else {
-		std::string path = argv[1];
+		std::string path = std::string(argv[1]);
 
 		if(argc > 2) {
 			double enc = std::stod(argv[2]);
