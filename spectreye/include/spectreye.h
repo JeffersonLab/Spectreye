@@ -1,6 +1,15 @@
 // Copyright 2022, Jefferson Science Associates, LLC.
 // Subject to the terms in the LICENSE file found in the top-level directory.
 
+/*
+ * Spectreye is a tool for automatically determining the angle of the Super High Momentum Spectrometer
+ * (SHMS) and the High Momentum Spectrometer (HMS) in JLab's Experimental Hall C. The program uses 
+ * computer vision and optical character recognition to determine the angle of the spectrometers from
+ * photos of their Vernier calipers. 
+ *
+ * A non-technical description of the project can be found at 
+ * https://docs.google.com/presentation/d/1qKy9npTbnCOFVQCxMHfdYh_vlz-lOZ7rnzxkA6Q_Qw8/
+ */
 
 #pragma once
 
@@ -13,7 +22,7 @@
 
 /*
  * Location of prebuilt EAST OCR model.
- * Don't change this default! If you want a differnt path, pass it to CMake.
+ * Don't change this default! If you want a different path, pass it to CMake.
  */
 #ifndef EAST_PATH
 	#define EAST_PATH "../data/east.pb"		
