@@ -80,6 +80,8 @@ struct SpectreyeReading {
  * 	This is a class instead of just a method so that models and other data can be loaded into
  * 	memory once and then accessed for multiple images.
  *
+ *	An example of how to use the class can be found in the readme.
+ *
  * 	Method descriptions can be found in ../src/spectreye.cpp
  */
 class Spectreye 
