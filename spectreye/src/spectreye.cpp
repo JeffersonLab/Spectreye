@@ -162,8 +162,8 @@ std::string Spectreye::DescribeReading(SpectreyeReading r)
 }
 
 /*
- *	Filter utility that boosts image contrast and reduces shadows, can be efficiently applied 
- *	multiple times by specifying 'passes'. Expects a BGR Mat as input.
+ *  Filter utility that boosts image contrast and reduces shadows, can be efficiently applied 
+ *  multiple times by specifying 'passes'. Expects a BGR Mat as input.
  */
 cv::Mat Spectreye::CLAHEFilter(cv::Mat frame, int passes) 
 {
@@ -446,9 +446,9 @@ SpectreyeReading Spectreye::FromFrame(
 	cv::cvtColor(img, display, cv::COLOR_GRAY2BGR);	
 	
 	/*
-	 *	This section runs the LineSegmentDetector on the images, and reduces its output to lines 
-	 *	which are most likely 1/100th angle ticks on the Vernier caliper. Reference images on
-	 *	slideshow linked at top of file.
+	 *  This section runs the LineSegmentDetector on the images, and reduces its output to lines 
+	 *  which are most likely 1/100th angle ticks on the Vernier caliper. Reference images on
+	 *  slideshow linked at top of file.
 	 */ 
 	
 	cv::Vec4f ltick, rtick;			 // Two line segments closest to image middle.

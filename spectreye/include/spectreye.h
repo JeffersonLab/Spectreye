@@ -34,17 +34,17 @@ const double SHMS_MIN =  5.5;
 const double SHMS_MAX = 35.0; 
 
 /*
- *	If the difference between the encoder angle and OCR angle is more than this, the composite
- *	value will be returned. Operates under the assumption that the encoder generally is not off by
- *	a huge amount.
+ *  If the difference between the encoder angle and OCR angle is more than this, the composite
+ *  value will be returned. Operates under the assumption that the encoder generally is not off by
+ *  a huge amount.
  */
 const double MARK_THRESH = 1.0;
 
 
 /*
- *	Possible status that a SpectreyeReading can have. Always check this before operating on 
- *	the returned angle. Because of C++11 compliance, std::optional cannot be used for angle 
- *	results, so it's important to verify the status of the returned angle.
+ *  Possible status that a SpectreyeReading can have. Always check this before operating on 
+ *  the returned angle. Because of C++11 compliance, std::optional cannot be used for angle 
+ *  results, so it's important to verify the status of the returned angle.
  */
 enum RetCode 
 {
@@ -55,8 +55,8 @@ enum RetCode
 };
 
 /*
- *	Either SHMS or HMS. If a value of DT_UNKNOWN is passed to Spectreye it will assume HMS.
- *	You should always use FindAngleHMS or FindAngleSHMS so it shouldn't be problem.
+ *  Either SHMS or HMS. If a value of DT_UNKNOWN is passed to Spectreye it will assume HMS.
+ *  You should always use FindAngleHMS or FindAngleSHMS so it shouldn't be problem.
  */
 enum DeviceType 
 {
@@ -89,7 +89,7 @@ struct SpectreyeReading {
  * 	This is a class instead of just a method so that models and other data can be loaded into
  * 	memory once and then accessed for multiple images.
  *
- *	An example of how to use the class can be found in the readme.
+ *  An example of how to use the class can be found in the readme.
  *
  * 	Method descriptions can be found in ../src/spectreye.cpp
  */
@@ -114,10 +114,10 @@ private:
 	cv::Ptr<cv::CLAHE> clahe;				// Tool for boosting image contrast during filtering.
 
 	/*
-	 *	Tesseract OCR access point. Should be initialized once, and then tweaked based on intended
-	 *	use. Different settings work better for bounding box detection vs reading numbers.
-	 *	You can probably get more accuracy out of it with better settings than what are currently
-	 *	being used.
+	 *  Tesseract OCR access point. Should be initialized once, and then tweaked based on intended
+	 *  use. Different settings work better for bounding box detection vs reading numbers.
+	 *  You can probably get more accuracy out of it with better settings than what are currently
+	 *  being used.
 	 */
 	tesseract::TessBaseAPI *tess;	
 
