@@ -112,7 +112,7 @@ The general idea behind the algorithm is as follows:
  6. Convert string returned by Tesseract into a valid angle
  7. Determine whether to return OCR or composite angle guess
 
-If you want to understand the code,  `spectreye/src/spectreye.cpp` is generally well-commented, and should provide a good explanation for the decisions made during each step of the process.
+If you want to understand the code,  `spectreye/src/spectreye.cpp` and `spcetreye/include/spectreye.h` are generally well-commented, and should provide a good explanation for the decisions made during each step of the process.
 
 ## Further Improvements
 While Spectreye is complete and usable, a number of improvements still need to be made to improve performance and reliability.
