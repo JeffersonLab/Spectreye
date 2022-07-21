@@ -21,8 +21,8 @@
 
 
 /*
- * Location of prebuilt EAST OCR model.
- * Don't change this default! If you want a different path, pass it to CMake.
+ *  Location of prebuilt EAST OCR model.
+ *  Don't change this default! If you want a different path, pass it to CMake.
  */
 #ifndef EAST_PATH
 	#define EAST_PATH "../data/east.pb"		

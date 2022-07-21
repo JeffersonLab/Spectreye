@@ -1,6 +1,16 @@
 // Copyright 2022, Jefferson Science Associates, LLC.
 // Subject to the terms in the LICENSE file found in the top-level directory.
 
+/*
+ * Spectreye is a tool for automatically determining the angle of the Super High Momentum Spectrometer
+ * (SHMS) and the High Momentum Spectrometer (HMS) in JLab's Experimental Hall C. The program uses 
+ * computer vision and optical character recognition to determine the angle of the spectrometers from
+ * photos of their Vernier calipers. 
+ *
+ * A non-technical description of the project can be found at 
+ * https://docs.google.com/presentation/d/1qKy9npTbnCOFVQCxMHfdYh_vlz-lOZ7rnzxkA6Q_Qw8/
+ */
+
 
 #include <opencv2/opencv.hpp>
 #include <tesseract/baseapi.h>
@@ -10,43 +20,65 @@
 
 #include "include/spectreye.h"
 
-
+/*
+ *  Spectreye is intended to be used by creating a single object, and then using it on multiple image
+ *  files. Don't call the constructor for each image, it's a waste of resources and runtime.
+ */
 Spectreye::Spectreye(int debug) 
 {
+	// Create morphology elements for repeated use during image filtering.
 	this->dkernel = cv::getStructuringElement(cv::MORPH_DILATE, cv::Size(4,4));
 	this->okernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(1,1));
 	this->ckernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(2,4));
 
+	// Load models into memory.
 	this->net = cv::dnn::readNet(std::string(EAST_PATH));
 	this->lsd = cv::createLineSegmentDetector(0);
 
+	// Initialize CLAHE for filtering use.
 	this->clahe = cv::createCLAHE();
 	this->clahe->setClipLimit(2.0);
 	this->clahe->setTilesGridSize(cv::Size(8, 8));
 
+	// Load Tesseract into memory, and set initial configuration. PSM can be changed during run.
 	this->tess = new tesseract::TessBaseAPI();
 	this->tess->Init(NULL, "eng");
 	this->tess->SetPageSegMode(tesseract::PageSegMode::PSM_SINGLE_BLOCK);
 	this->debug = debug;
 }
 
+/*
+ *  Wrapper for HMS images.
+ */
 SpectreyeReading Spectreye::GetAngleHMS(std::string path, double encoder_angle) 
 {
 	return this->FromFrame(cv::imread(path), DT_HMS, path, encoder_angle);
 }
 
+/*
+ *  Wrapper for SHMS images.
+ */
 SpectreyeReading Spectreye::GetAngleSHMS(std::string path, double encoder_angle) 
 {
 	return this->FromFrame(cv::imread(path), DT_SHMS, path, encoder_angle);
 }
 
+/*
+ *  Utility for extracting the first occurance of a plain-text timestamp out of a file.
+ *  These dates are useful for comparing results with encoder data.
+ *  There is a lot of room for optimization here.
+ */
 std::string Spectreye::ExtractTimestamp(std::string path) 
 {
+	// This can and should be made much more efficient.
+	// It currently uses Perl syntax regex which doesn't work on MacOS grep.
 	std::string com = "strings " + path + " | grep -P \"(19|20)[\\d]{2,2}\"";
 
 	char buf[128];
 	std::string res;
 
+	// Opens file as pipe and writes it to string through 128 byte buffer. 
+	// You could probably use libjpeg or something to do this more easily.
 	FILE* pipe = popen(com.c_str(), "r");
 	if(!pipe)
 		return "failed to build timestamp";
@@ -57,6 +89,7 @@ std::string Spectreye::ExtractTimestamp(std::string path)
 	}
 	pclose(pipe);
 
+	// Encoder datasets seperate dates with '-', but times with ':'.
 	std::string datetime;
 	int n = 0;
 	for(const auto& c : res) {
@@ -74,6 +107,11 @@ std::string Spectreye::ExtractTimestamp(std::string path)
 	return datetime;
 }
 
+/*
+ *  Pretty-print for SpectreyeReading struct. Relies on your terminal having basic color
+ *  functionality to make everything nice and fancy looking. Run this in stock xterm if you want
+ *  to go blind.
+ */
 std::string Spectreye::DescribeReading(SpectreyeReading r) 
 {
 	std::stringstream ret;
@@ -105,6 +143,8 @@ std::string Spectreye::DescribeReading(SpectreyeReading r)
 			ret << "\033[1;31mFAILURE\033[1;0m";
 			break;
 	}
+
+	// Changes float position based on signage and other factors to make sure that numbers align.
 	ret << " - \033[1;34m";
 	ret << std::fixed << std::setprecision(2) << r.angle;
 	ret << " deg\033[1;0m\n";
@@ -121,11 +161,15 @@ std::string Spectreye::DescribeReading(SpectreyeReading r)
 	return ret.str();	
 }
 
+/*
+ *	Filter utility that boosts image contrast and reduces shadows, can be efficiently applied 
+ *	multiple times by specifying 'passes'. Expects a BGR Mat as input.
+ */
 cv::Mat Spectreye::CLAHEFilter(cv::Mat frame, int passes) 
 {
 	cv::Mat img, lab;
 	cv::cvtColor(frame, lab, cv::COLOR_BGR2Lab);
-	
+	s
 	std::vector<cv::Mat> lplanes(3);
 	cv::split(lab, lplanes);
 	cv::Mat dst;
@@ -139,6 +183,11 @@ cv::Mat Spectreye::CLAHEFilter(cv::Mat frame, int passes)
 	return img;
 }
 
+/*
+ *  Primary filter for OCR. Uses a 'dumb' threshold, and then heavily filters out noise to isolate
+ *  text. Sometimes the threshold will be too low/high, which invalidats the output, and forces the
+ *  mask filter to be usd.
+ */
 cv::Mat Spectreye::ThreshFilter(cv::Mat frame) 
 {
 	cv::Mat img, bg;
@@ -153,6 +202,12 @@ cv::Mat Spectreye::ThreshFilter(cv::Mat frame)
 	return img;
 }
 
+/*
+ *  Alternative filter for OCR which uses a color mask to get rid of everything red. This isn't good 
+ *  for reading text, but might actually be better than the threshold for identifying numbers. I have
+ *  not tested it as much, so the case may be that it could heavily improve OCR performance with 
+ *  some small tweaks.
+ */
 cv::Mat Spectreye::MaskFilter(cv::Mat frame) 
 {
 	cv::Mat mask, img;
@@ -170,6 +225,12 @@ cv::Mat Spectreye::MaskFilter(cv::Mat frame)
 	return img;
 }
 
+/*
+ *  Uses the EAST OCR model to locate bounding boxes for angle marks. Main part of the program that
+ *  needs improvement to boost reliability. The EAST model is optimized for 'scenes' where text is
+ *  on things like street signs or license plates, so the somewhat abstract environment of the 
+ *  Vernier scale is sometimes off-putting to it.
+ */
 std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat frame) 
 {
 	std::vector<cv::Mat> outs;
@@ -180,6 +241,7 @@ std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat frame)
 	int H = timg.size().height;
 	int W = timg.size().width;
 
+	// Images passed to EAST must have be squares with sizes that are multiples of 32.
 	int origH = H;
 	int newW = 320, newH = 320;
 	double rW = (double) W / (double) newW;
@@ -189,20 +251,22 @@ std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat frame)
 	H = timg.size().height;
 	W = timg.size().width;
 
+	// Creates blob using predetermined weights. Don't change them!
 	cv::Mat blob = cv::dnn::blobFromImage(
 			timg, 1.0, cv::Size(H, W), cv::Scalar(123.68, 116.78, 103.94), true, false); 
 
+	// Runs the model on the blob.
 	this->net.setInput(blob);
 	this->net.forward(outs, this->layer_names);
 
-	cv::Mat scores   = outs[0];
-	cv::Mat geometry = outs[1];
+	cv::Mat scores   = outs[0];		// Model confidence in each box.
+	cv::Mat geometry = outs[1];		// Weird data structure containing box shape and angles.
 
-	std::vector<cv::Rect> rects;
-	std::vector<float> confidences;
+	std::vector<cv::Rect> rects;	// Final rects to return.
+	std::vector<float> confidences;	// Final confidences to rturn.
 
 	int nrows = scores.size[2];
-	int ncols = scores.size[3];
+	int ncols = scores.size[3];		// Number of boxes found initially.
 
 	cv::Mat temp = frame.clone();
 
@@ -215,9 +279,14 @@ std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat frame)
 		const float* angles = geometry.ptr<float>(0, 4, y);
 
 		for(int x=0; x<ncols; ++x) {
+
+			// Throw out boxes under arbitrary confidence threshold.
 			if (scores_data[x] < 0.5) {
-				continue;
+				continue;	
 			}
+
+			// EAST boxes are represented in polar coordinates on 320x320 image, so they must
+			// be resized and converted to Cartesian coordinates for use on the real image.
 			float offsetX = x * 4.0;
 			float offsetY = y * 4.0;
 			float angle = angles[x];
@@ -231,27 +300,36 @@ std::vector<cv::Rect> Spectreye::OcrEast(cv::Mat frame)
 			int startX = (int)(endX - w);
 			int startY = (int)(endY - h);
 			
+			// Make sure that rects don't go off the image vertically.
 			if (endY*rH < origH) {
+
+				// Creates a cartesian rectangle resized to our image size.
 				cv::Rect rect = cv::Rect(startX*rW, startY*rH, (endX-startX)*rW, (endY-startY)*rH);
 
 				cv::rectangle(temp, rect, cv::Scalar(0, 255, 0), 2);
 
+				// Adds rect to final vector.
 				rects.push_back(rect);
 				confidences.push_back(scores_data[x]);
 			}
 		}
 	}
-/*
-	cv::imshow("R", temp);
-	cv::waitKey(0);
-	cv::destroyAllWindows();
-*/
+
+	// This tries to perform 'Non-Maximal Suppression', an algorithm which takes boxes with 
+	// significant amounts of overlap and combines them. The Python prototype did this very well
+	// using an algorithm from the 'imutils' package, but that is not available for C++. This 
+	// implementation is less reliable. A better solution would be preferred.
 	std::vector<int> indices;
 	cv::dnn::NMSBoxes(rects, confidences, 0, 0.5, indices);
 
 	return rects;
 }
 
+/*
+ *  Tesseract OCR for bounding boxes. Sometimes when EAST fails, Tesseract is able to find the angle
+ *  marks. This is currently less reliable than it's Python alternative, as it returns bounding boxes
+ *  that are too large horizontally. However, it tends to work where EAST doesn't.
+ */
 std::vector<cv::Rect> Spectreye::OcrTess(cv::Mat frame) 
 {
 	std::cout << "Using Tess OCR" << std::endl;
